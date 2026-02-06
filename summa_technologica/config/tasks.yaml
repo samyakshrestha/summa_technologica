@@ -1,0 +1,74 @@
+formulate_problem_task:
+  description: >
+    User question: {question}
+    Domain focus: {domain}
+    Objective: {objective}
+
+    Create an internal memo that clarifies the problem before debate begins.
+    Include:
+    - one precise restatement of the central question
+    - explicit assumptions
+    - key definitions and scope limits
+    - two possible thesis directions to evaluate
+  expected_output: >
+    A concise internal memo for downstream tasks. This is not user-facing.
+  agent: problem_formulator
+
+generate_objections_task:
+  description: >
+    Using the internal memo, produce exactly three substantial objections.
+    Requirements:
+    - each objection must use a different angle (for example empirical, mathematical,
+      conceptual, practical, ethical)
+    - each objection should directly target a plausible thesis
+    - avoid strawman objections and avoid repetition
+
+    Output JSON only with keys:
+    question (string),
+    objections (array of three objects with number and text).
+  expected_output: >
+    Valid JSON containing question and exactly three objections.
+  agent: objection_engineer
+  context:
+    - formulate_problem_task
+
+draft_summa_task:
+  description: >
+    Produce a complete Summa-style response using the question and the objections.
+    Requirements:
+    - keep exactly three objections and exactly three replies
+    - on_the_contrary must be a concise counter-principle or authority-style claim
+    - i_answer_that must present a clear thesis with reasoning, not generic advice
+    - each reply must explicitly answer the corresponding objection number
+    - prioritize originality and domain relevance for {domain}
+
+    Output JSON only with keys:
+    question (string),
+    objections (array of three objects with number and text),
+    on_the_contrary (string),
+    i_answer_that (string),
+    replies (array of three objects with objection_number and text).
+  expected_output: >
+    Valid JSON in the exact schema required by the application.
+  agent: respondeo_author
+  context:
+    - formulate_problem_task
+    - generate_objections_task
+
+quality_gate_task:
+  description: >
+    Review the draft for:
+    - logical coherence across objections, thesis, and replies
+    - concrete and non-generic reasoning suitable for brainstorming original ideas
+    - strict schema compliance
+
+    If the draft is weak or inconsistent, rewrite it.
+    Return only the final JSON with keys:
+    question, objections, on_the_contrary, i_answer_that, replies.
+  expected_output: >
+    Final validated JSON object with exactly three objections and three replies.
+  agent: scholastic_editor
+  context:
+    - draft_summa_task
+    - generate_objections_task
+

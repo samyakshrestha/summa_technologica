@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "summa-technologica"
+version = "0.1.0"
+description = "CrewAI scaffold for Summa-style structured reasoning"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "crewai>=0.114.0",
+  "python-dotenv>=1.0.0",
+]
+
+[project.scripts]
+summa-technologica = "summa_technologica.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["summa_technologica*"]
+
+[tool.setuptools.package-data]
+summa_technologica = ["config/*.yaml"]

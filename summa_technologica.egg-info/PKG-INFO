@@ -1,0 +1,47 @@
+Metadata-Version: 2.4
+Name: summa-technologica
+Version: 0.1.0
+Summary: CrewAI scaffold for Summa-style structured reasoning
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: crewai>=0.114.0
+Requires-Dist: python-dotenv>=1.0.0
+
+# Summa Technologica (CrewAI + YAML)
+
+This project generates a **Summa-style response** to a question:
+
+1. Three objections
+2. `On the contrary...`
+3. `I answer that...`
+4. Replies to objections 1-3
+
+It now uses CrewAI's YAML configuration pattern:
+
+- `/Users/samyakshrestha/Projects/summa_technologica/summa_technologica/config/agents.yaml`
+- `/Users/samyakshrestha/Projects/summa_technologica/summa_technologica/config/tasks.yaml`
+- `/Users/samyakshrestha/Projects/summa_technologica/summa_technologica/crew.py` with `@CrewBase`
+
+## If you are new, start here
+
+Read `/Users/samyakshrestha/Projects/summa_technologica/BEGINNER_GUIDE.md`.
+
+## Quick Start
+
+```bash
+conda activate main_env
+pip install crewai
+pip install -e /Users/samyakshrestha/Projects/summa_technologica
+cp /Users/samyakshrestha/Projects/summa_technologica/.env.example /Users/samyakshrestha/Projects/summa_technologica/.env
+# edit .env once with your key/model
+summa-technologica "Should open-source AI be tightly regulated?" --domain "AI policy"
+```
+
+## CLI options
+
+```bash
+summa-technologica "your question"
+summa-technologica "your question" --domain "physics"
+summa-technologica "your question" --domain "mathematics" --format json
+summa-technologica "your question" --save /tmp/summa_output.md
+```
