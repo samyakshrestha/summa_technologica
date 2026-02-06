@@ -11,10 +11,12 @@ requires-python = ">=3.10"
 dependencies = [
   "crewai>=0.114.0",
   "python-dotenv>=1.0.0",
+  "PyYAML>=6.0",
 ]
 
 [project.scripts]
 summa-technologica = "summa_technologica.cli:main"
+summa-v1-benchmark = "summa_technologica.eval_v1:main"
 
 [tool.setuptools.packages.find]
 include = ["summa_technologica*"]

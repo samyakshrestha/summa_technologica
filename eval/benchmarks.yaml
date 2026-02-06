@@ -1,0 +1,120 @@
+- id: physics_01
+  domain: physics
+  question: "Can topological invariants in condensed matter physics inform error-correction codes for quantum computing?"
+  relevance_keywords: ["topological order", "stabilizer codes", "anyons"]
+  known_bad_pattern: "Hypothesis merely restates the question without proposing a mechanism."
+
+- id: physics_02
+  domain: physics
+  question: "Could analog-gravity laboratory systems constrain candidate explanations of the cosmological constant problem?"
+  relevance_keywords: ["analog gravity", "vacuum energy", "effective field theory"]
+  known_bad_pattern: "Claims broad cosmological conclusions without linking lab observables to model parameters."
+
+- id: physics_03
+  domain: physics
+  question: "Can non-Hermitian open-system dynamics be exploited to improve efficiency bounds in quantum heat engines?"
+  relevance_keywords: ["non-Hermitian dynamics", "quantum thermodynamics", "heat engines"]
+  known_bad_pattern: "Confuses transient gain with thermodynamic efficiency gains."
+
+- id: physics_04
+  domain: physics
+  question: "Could self-interacting dark matter leave detectable signatures in pulsar timing array data beyond standard stochastic backgrounds?"
+  relevance_keywords: ["self-interacting dark matter", "pulsar timing arrays", "stochastic background"]
+  known_bad_pattern: "Does not specify any discriminating observational signature."
+
+- id: physics_05
+  domain: physics
+  question: "Can symmetry-protected subspaces be used to design fault-tolerant analog quantum simulators?"
+  relevance_keywords: ["symmetry protection", "analog simulation", "fault tolerance"]
+  known_bad_pattern: "Treats digital error correction and analog protection as equivalent without justification."
+
+- id: mathematics_01
+  domain: mathematics
+  question: "Can higher-category structures provide a rigorous language for mechanistic interpretability in large language models?"
+  relevance_keywords: ["higher categories", "mechanistic interpretability", "compositionality"]
+  known_bad_pattern: "Uses category-theory terminology decoratively with no formal mapping."
+
+- id: mathematics_02
+  domain: mathematics
+  question: "Could optimal-transport geometry yield sharper convergence guarantees for diffusion-model training?"
+  relevance_keywords: ["optimal transport", "diffusion models", "convergence rates"]
+  known_bad_pattern: "Proposes an algorithmic tweak without any conjectured bound or theorem shape."
+
+- id: mathematics_03
+  domain: mathematics
+  question: "Can expander-based constructions suggest new approaches to lowering practical complexity of finite-field matrix multiplication?"
+  relevance_keywords: ["expander graphs", "finite fields", "matrix multiplication"]
+  known_bad_pattern: "Confuses asymptotic exponent improvements with practical constant-factor wins."
+
+- id: mathematics_04
+  domain: mathematics
+  question: "Could homotopy type theory support machine-checkable reformulations of renormalization-group arguments?"
+  relevance_keywords: ["homotopy type theory", "formal verification", "renormalization group"]
+  known_bad_pattern: "Ignores required translation between analytic arguments and type-theoretic objects."
+
+- id: mathematics_05
+  domain: mathematics
+  question: "Can p-adic analytic techniques provide new heuristics for short-interval prime-gap behavior?"
+  relevance_keywords: ["p-adic analysis", "prime gaps", "analytic number theory"]
+  known_bad_pattern: "States heuristic claims without specifying which distributional regime is targeted."
+
+- id: biology_01
+  domain: biology
+  question: "Can canalization of developmental noise be modeled as an error-correcting process in gene-regulatory networks?"
+  relevance_keywords: ["developmental noise", "gene regulatory networks", "canalization"]
+  known_bad_pattern: "Uses information-theory metaphors without linking to measurable developmental phenotypes."
+
+- id: biology_02
+  domain: biology
+  question: "Could microbiome metabolite-network structure improve prediction of patient response to checkpoint immunotherapy?"
+  relevance_keywords: ["microbiome", "metabolomics", "immunotherapy response"]
+  known_bad_pattern: "Confuses correlation-based biomarkers with causal intervention pathways."
+
+- id: biology_03
+  domain: biology
+  question: "Can protein language-model embeddings reveal allosteric pathways not recovered by structure-only pipelines?"
+  relevance_keywords: ["protein language models", "allostery", "structure-function"]
+  known_bad_pattern: "Claims improved discovery without defining a validation protocol."
+
+- id: biology_04
+  domain: biology
+  question: "Could heterogeneity in cellular senescence be modeled as transitions among dynamical attractor states with intervention leverage?"
+  relevance_keywords: ["cellular senescence", "dynamical systems", "state transitions"]
+  known_bad_pattern: "Lists putative states but omits transition mechanisms or control variables."
+
+- id: biology_05
+  domain: biology
+  question: "Can synthetic minimal-cell platforms test competing hypotheses about early metabolic energy coupling?"
+  relevance_keywords: ["minimal cells", "origin of life", "energy coupling"]
+  known_bad_pattern: "Offers origin-of-life narratives without experiment design in minimal systems."
+
+- id: cs_01
+  domain: computer_science
+  question: "Can sparse autoencoder features be causally intervened to reduce jailbreak susceptibility in frontier language models?"
+  relevance_keywords: ["sparse autoencoders", "causal intervention", "jailbreak robustness"]
+  known_bad_pattern: "Proposes feature editing without specifying attack and evaluation protocol."
+
+- id: cs_02
+  domain: computer_science
+  question: "Could differentiable compiler cost models outperform heuristic scheduling for register allocation under strict latency targets?"
+  relevance_keywords: ["compiler optimization", "register allocation", "differentiable cost model"]
+  known_bad_pattern: "Reports generic ML benefits without defining compiler-level constraints."
+
+- id: cs_03
+  domain: computer_science
+  question: "Can retrieval-augmented theorem proving scale better with curriculum design over formal-math libraries?"
+  relevance_keywords: ["automated theorem proving", "retrieval augmentation", "curriculum learning"]
+  known_bad_pattern: "Assumes more retrieval always helps without addressing distractor effects."
+
+- id: cs_04
+  domain: computer_science
+  question: "Could learned optimism in decentralized consensus reduce tail-latency in geo-distributed databases?"
+  relevance_keywords: ["distributed systems", "consensus protocols", "tail latency"]
+  known_bad_pattern: "Mentions latency gains but ignores safety/liveness tradeoffs."
+
+- id: cs_05
+  domain: computer_science
+  question: "Can privacy-preserving federated reinforcement learning approach centralized sample efficiency in robotics?"
+  relevance_keywords: ["federated learning", "reinforcement learning", "privacy"]
+  known_bad_pattern: "Claims parity with centralized training without accounting for communication and non-IID drift."
+

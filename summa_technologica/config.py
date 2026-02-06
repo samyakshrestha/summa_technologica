@@ -1,7 +1,11 @@
 from dataclasses import dataclass
 import os
 
-from dotenv import load_dotenv
+try:
+    from dotenv import load_dotenv
+except ModuleNotFoundError:  # pragma: no cover - fallback for minimally provisioned envs
+    def load_dotenv() -> bool:
+        return False
 
 load_dotenv()
 

@@ -62,6 +62,29 @@ summa-technologica 'Your question here' --format json
 summa-technologica 'Your question here' --save output.md
 ```
 
+## V1 baseline benchmarking (WP1)
+
+Run the benchmark suite and save baseline artifacts:
+
+```bash
+summa-v1-benchmark
+```
+
+Useful options:
+
+```bash
+summa-v1-benchmark --dry-run
+summa-v1-benchmark --domain physics --limit 2
+summa-v1-benchmark --run-label first_pass
+```
+
+Outputs are written under `eval/results/v1/<timestamp>/` with:
+
+- `manifest.json`
+- per-case JSON files
+- `summary.json`
+- `summary.md`
+
 ## Configuration
 
 All configuration lives in `.env`. Key options:
