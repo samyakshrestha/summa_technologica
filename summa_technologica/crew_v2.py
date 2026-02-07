@@ -199,7 +199,7 @@ def run_summa_v2(
 
         composer_output = _run_stage_with_retry(
             stage_name="summa_composer",
-            run_once=lambda retry_error: _run_json_stage(
+            run_once=lambda retry_error: _run_summa_composer_stage(
                 agent_cfg=agents_cfg["summa_composer"],
                 task_cfg=tasks_cfg["summa_composer_task"],
                 settings=settings,
@@ -227,7 +227,7 @@ def run_summa_v2(
         try:
             validate_v2_payload(final_payload, grounded_papers=retrieval_result.papers)
         except ContractValidationError as exc:
-            composer_retry = _run_json_stage(
+            composer_retry = _run_summa_composer_stage(
                 agent_cfg=agents_cfg["summa_composer"],
                 task_cfg=tasks_cfg["summa_composer_task"],
                 settings=settings,
@@ -346,6 +346,43 @@ def _run_json_stage(
     return _parse_json_object(raw)
 
 
+def _run_summa_composer_stage(
+    *,
+    agent_cfg: dict[str, Any],
+    task_cfg: dict[str, Any],
+    settings: Settings,
+    inputs: dict[str, str],
+    retry_error: str | None,
+) -> dict[str, Any]:
+    """Run the SummaComposer with tolerance for non-JSON output.
+
+    LLMs often return the Summa rendering as plain text instead of wrapping
+    it in {"summa_rendering": "..."}. This function tries JSON parsing first,
+    and if that fails, treats the entire raw output as the rendering.
+    """
+    raw = _run_agent_task(
+        agent_cfg=agent_cfg,
+        task_cfg=task_cfg,
+        settings=settings,
+        inputs=inputs,
+        retry_error=retry_error,
+    )
+    try:
+        parsed = _parse_json_object(raw)
+        if isinstance(parsed.get("summa_rendering"), str) and parsed["summa_rendering"].strip():
+            return parsed
+    except (ValueError, json.JSONDecodeError):
+        pass
+
+    # The agent returned raw Summa text instead of JSON. Use it directly.
+    cleaned = raw.strip()
+    cleaned = re.sub(r"^```(?:markdown|md)?\s*", "", cleaned)
+    cleaned = re.sub(r"\s*```$", "", cleaned)
+    if not cleaned:
+        raise ValueError("SummaComposer returned empty output.")
+    return {"summa_rendering": cleaned}
+
+
 def _run_agent_task(
     *,
     agent_cfg: dict[str, Any],
@@ -365,8 +402,8 @@ def _run_agent_task(
 
     description_template = _require_nonempty_str(task_cfg, "description")
     expected_output_template = _require_nonempty_str(task_cfg, "expected_output")
-    description = description_template.format(**inputs)
-    expected_output = expected_output_template.format(**inputs)
+    description = _render_template(description_template, inputs)
+    expected_output = _render_template(expected_output_template, inputs)
 
     if retry_error:
         description += (
@@ -816,6 +853,18 @@ def _normalize_doi(value: str | None) -> str:
 
 def _as_json(value: Any) -> str:
     return json.dumps(value, ensure_ascii=True)
+
+
+def _render_template(template: str, inputs: dict[str, str]) -> str:
+    """Render {key} placeholders while preserving unrelated literal braces.
+
+    Using str.format() is unsafe here because task prompts include literal JSON
+    examples like {"summa_rendering": "..."} that trigger KeyError.
+    """
+    rendered = template
+    for key, value in inputs.items():
+        rendered = rendered.replace("{" + key + "}", value)
+    return rendered
 
 
 def _require_nonempty_str(payload: dict[str, Any], key: str) -> str:

@@ -3,11 +3,21 @@ import unittest
 from summa_technologica.crew_v2 import (
     _apply_pairwise_ranking,
     _normalize_generated_hypotheses,
+    _render_template,
 )
 from summa_technologica.semantic_scholar import SemanticScholarPaper
 
 
 class CrewV2HelperTests(unittest.TestCase):
+    def test_render_template_preserves_literal_json_braces(self) -> None:
+        template = (
+            "Question: {question}\n"
+            "Do not output JSON other than {\"summa_rendering\": \"...\"}."
+        )
+        rendered = _render_template(template, {"question": "Q?"})
+        self.assertIn("Question: Q?", rendered)
+        self.assertIn("{\"summa_rendering\": \"...\"}", rendered)
+
     def test_apply_pairwise_ranking(self) -> None:
         hypotheses = [
             {
@@ -108,4 +118,3 @@ class CrewV2HelperTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-
