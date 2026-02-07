@@ -1,6 +1,14 @@
 """Summa Technologica scaffold package."""
 
 from .models import SummaResponse
+from .semantic_scholar import (
+    RetrievalResult,
+    SemanticScholarPaper,
+    build_dual_queries,
+    retrieve_grounded_papers,
+    search_semantic_scholar,
+    validate_citations_against_papers,
+)
 from .v2_contracts import (
     ContractValidationError,
     PipelineErrorContract,
@@ -26,4 +34,10 @@ __all__ = [
     "parse_and_validate_v2_json",
     "validate_partial_failure_payload",
     "validate_v2_payload",
+    "RetrievalResult",
+    "SemanticScholarPaper",
+    "build_dual_queries",
+    "retrieve_grounded_papers",
+    "search_semantic_scholar",
+    "validate_citations_against_papers",
 ]

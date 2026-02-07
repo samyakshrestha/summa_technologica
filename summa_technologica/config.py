@@ -22,6 +22,9 @@ class Settings:
     verbose: bool
     default_domain: str
     default_objective: str
+    semantic_scholar_api_key: str | None
+    semantic_scholar_base_url: str
+    semantic_scholar_timeout_seconds: float
 
     @staticmethod
     def from_env() -> "Settings":
@@ -39,5 +42,13 @@ class Settings:
             default_objective=os.getenv(
                 "SUMMA_DEFAULT_OBJECTIVE",
                 "Brainstorm original, testable, high-leverage ideas.",
+            ),
+            semantic_scholar_api_key=os.getenv("SEMANTIC_SCHOLAR_API_KEY"),
+            semantic_scholar_base_url=os.getenv(
+                "SEMANTIC_SCHOLAR_BASE_URL",
+                "https://api.semanticscholar.org",
+            ),
+            semantic_scholar_timeout_seconds=float(
+                os.getenv("SEMANTIC_SCHOLAR_TIMEOUT_SECONDS", "20.0")
             ),
         )

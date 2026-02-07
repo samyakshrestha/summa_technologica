@@ -18,6 +18,7 @@ dependencies = [
 [project.scripts]
 summa-technologica = "summa_technologica.cli:main"
 summa-v1-benchmark = "summa_technologica.eval_v1:main"
+summa-semantic-search = "summa_technologica.semantic_scholar_cli:main"
 
 [tool.setuptools.packages.find]
 include = ["summa_technologica*"]

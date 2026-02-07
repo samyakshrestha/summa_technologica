@@ -98,6 +98,22 @@ Outputs are written under `eval/results/v1/<timestamp>/` with:
 - `summary.json`
 - `summary.md`
 
+## Semantic Scholar retrieval check (WP3)
+
+Test dual-query retrieval independently:
+
+```bash
+summa-semantic-search "Can topological invariants improve quantum error correction?" \
+  --refined-query "topological order stabilizer codes anyons"
+```
+
+This prints structured JSON with:
+
+- `status`
+- `queries`
+- `papers` (deduplicated across both queries)
+- `errors`
+
 ## Configuration
 
 All configuration lives in `.env`. Key options:
@@ -107,6 +123,9 @@ All configuration lives in `.env`. Key options:
 | `MODEL` | `gpt-4o-mini` | Which model to use |
 | `SUMMA_VERBOSE` | `false` | Show agent reasoning in real time |
 | `SUMMA_DEFAULT_DOMAIN` | `general science` | Default domain if `--domain` is not passed |
+| `SEMANTIC_SCHOLAR_API_KEY` | empty | Optional API key for higher Semantic Scholar limits |
+| `SEMANTIC_SCHOLAR_BASE_URL` | `https://api.semanticscholar.org` | Retrieval backend base URL |
+| `SEMANTIC_SCHOLAR_TIMEOUT_SECONDS` | `20.0` | Timeout for retrieval requests |
 
 You can use any provider supported by LiteLLM. Examples:
 
@@ -130,11 +149,13 @@ summa_technologica/
     cli.py                 # Command-line interface
     formatter.py           # Markdown output formatting
     config.py              # Environment/settings loader
+    semantic_scholar.py    # Semantic Scholar retrieval + citation grounding
 schemas/
     hypothesis_schema.json # Canonical V2 output schema
 tests/
     test_models.py         # Unit tests for the JSON parser
     test_v2_contracts.py   # Unit tests for V2 contract validation
+    test_semantic_scholar.py # Unit tests for retrieval + grounding logic
 ```
 
 ## Customization

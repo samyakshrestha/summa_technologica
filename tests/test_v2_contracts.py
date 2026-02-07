@@ -8,6 +8,7 @@ from summa_technologica.v2_contracts import (
     validate_partial_failure_payload,
     validate_v2_payload,
 )
+from summa_technologica.semantic_scholar import SemanticScholarPaper
 
 try:
     import jsonschema  # noqa: F401
@@ -199,7 +200,24 @@ class V2SchemaValidationTests(unittest.TestCase):
         with self.assertRaises(ContractValidationError):
             validate_v2_payload(payload)
 
+    def test_grounded_citations_are_enforced_when_catalog_is_provided(self) -> None:
+        payload = _valid_payload()
+        grounded = [
+            SemanticScholarPaper(
+                paper_id="p9",
+                title="Other paper",
+                authors=["X"],
+                year=2020,
+                abstract="",
+                citation_count=None,
+                doi=None,
+                url=None,
+                source_query="q",
+            )
+        ]
+        with self.assertRaises(ContractValidationError):
+            validate_v2_payload(payload, grounded_papers=grounded)
+
 
 if __name__ == "__main__":
     unittest.main()
-

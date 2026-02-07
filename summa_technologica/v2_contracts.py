@@ -6,6 +6,11 @@ from pathlib import Path
 import re
 from typing import Any
 
+from .semantic_scholar import (
+    SemanticScholarPaper,
+    validate_citations_against_papers,
+)
+
 
 class ContractValidationError(ValueError):
     """Raised when a V2 payload violates schema or contract rules."""
@@ -65,6 +70,7 @@ def parse_and_validate_v2_json(
 def validate_v2_payload(
     payload: dict[str, Any],
     schema_path: Path | None = None,
+    grounded_papers: list[SemanticScholarPaper] | None = None,
 ) -> dict[str, Any]:
     if not isinstance(payload, dict):
         raise ContractValidationError("V2 payload must be a JSON object.")
@@ -75,6 +81,8 @@ def validate_v2_payload(
     _validate_hypothesis_triplets(payload)
     _validate_pairwise_references(payload)
     _validate_score_formula(payload)
+    if grounded_papers is not None:
+        _validate_citation_grounding(payload, grounded_papers)
     return payload
 
 
@@ -219,6 +227,22 @@ def _validate_score_formula(payload: dict[str, Any]) -> None:
             )
 
 
+def _validate_citation_grounding(
+    payload: dict[str, Any],
+    grounded_papers: list[SemanticScholarPaper],
+) -> None:
+    for hypothesis in payload["hypotheses"]:
+        issues = validate_citations_against_papers(
+            citations=hypothesis["citations"],
+            papers=grounded_papers,
+        )
+        if issues:
+            raise ContractValidationError(
+                f"Hypothesis {hypothesis['id']} has invalid citation grounding: "
+                + " | ".join(issues)
+            )
+
+
 def _extract_json_object(raw: str) -> dict[str, Any]:
     text = raw.strip()
     text = re.sub(r"^```(?:json)?\s*", "", text)
@@ -245,4 +269,3 @@ def _require_nonempty_str(payload: dict[str, Any], key: str) -> str:
     if not isinstance(value, str) or not value.strip():
         raise ContractValidationError(f"Field '{key}' must be a non-empty string.")
     return value.strip()
-
