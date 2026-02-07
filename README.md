@@ -113,11 +113,15 @@ summa_technologica/
         tasks.yaml         # Task prompts and sequencing
     crew.py                # CrewAI workflow definition
     models.py              # Data structures and JSON validation
+    v2_contracts.py        # V2 schema + validation + partial-failure contract
     cli.py                 # Command-line interface
     formatter.py           # Markdown output formatting
     config.py              # Environment/settings loader
+schemas/
+    hypothesis_schema.json # Canonical V2 output schema
 tests/
     test_models.py         # Unit tests for the JSON parser
+    test_v2_contracts.py   # Unit tests for V2 contract validation
 ```
 
 ## Customization

@@ -1,0 +1,296 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SummaTechnologicaV2Output",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "question",
+    "domain",
+    "hypotheses",
+    "ranked_hypothesis_ids",
+    "summa_rendering"
+  ],
+  "properties": {
+    "question": {
+      "type": "string",
+      "minLength": 1
+    },
+    "domain": {
+      "type": "string",
+      "minLength": 1
+    },
+    "hypotheses": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/hypothesis"
+      }
+    },
+    "ranked_hypothesis_ids": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "summa_rendering": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "$defs": {
+    "objection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["number", "text"],
+      "properties": {
+        "number": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "reply": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["objection_number", "text"],
+      "properties": {
+        "objection_number": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "citation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "authors", "year"],
+      "properties": {
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "authors": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "year": {
+          "type": "integer",
+          "minimum": 1800,
+          "maximum": 2100
+        },
+        "paper_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "doi": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "anyOf": [
+        {
+          "required": ["paper_id"]
+        },
+        {
+          "required": ["doi"]
+        }
+      ]
+    },
+    "pairwise_comparison": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "hypothesis_a_id",
+        "hypothesis_b_id",
+        "winner_novelty",
+        "winner_plausibility",
+        "winner_testability"
+      ],
+      "properties": {
+        "hypothesis_a_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "hypothesis_b_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "winner_novelty": {
+          "enum": ["a", "b", "tie"]
+        },
+        "winner_plausibility": {
+          "enum": ["a", "b", "tie"]
+        },
+        "winner_testability": {
+          "enum": ["a", "b", "tie"]
+        }
+      }
+    },
+    "pairwise_record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["comparisons"],
+      "properties": {
+        "comparisons": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/pairwise_comparison"
+          }
+        },
+        "wins_by_dimension": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["novelty", "plausibility", "testability"],
+          "properties": {
+            "novelty": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "plausibility": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "testability": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        }
+      }
+    },
+    "scores": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["novelty", "plausibility", "testability", "overall"],
+      "properties": {
+        "novelty": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "plausibility": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "testability": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "overall": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 5
+        }
+      }
+    },
+    "hypothesis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "title",
+        "statement",
+        "novelty_rationale",
+        "plausibility_rationale",
+        "testability_rationale",
+        "falsifiable_predictions",
+        "minimal_experiments",
+        "objections",
+        "replies",
+        "citations",
+        "pairwise_record",
+        "scores"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "statement": {
+          "type": "string",
+          "minLength": 1
+        },
+        "novelty_rationale": {
+          "type": "string",
+          "minLength": 1
+        },
+        "plausibility_rationale": {
+          "type": "string",
+          "minLength": 1
+        },
+        "testability_rationale": {
+          "type": "string",
+          "minLength": 1
+        },
+        "falsifiable_predictions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "minimal_experiments": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "objections": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "$ref": "#/$defs/objection"
+          }
+        },
+        "replies": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "$ref": "#/$defs/reply"
+          }
+        },
+        "citations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/citation"
+          }
+        },
+        "pairwise_record": {
+          "$ref": "#/$defs/pairwise_record"
+        },
+        "scores": {
+          "$ref": "#/$defs/scores"
+        }
+      }
+    }
+  }
+}
+

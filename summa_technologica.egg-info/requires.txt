@@ -1,2 +1,4 @@
 crewai>=0.114.0
 python-dotenv>=1.0.0
+PyYAML>=6.0
+jsonschema>=4.22.0

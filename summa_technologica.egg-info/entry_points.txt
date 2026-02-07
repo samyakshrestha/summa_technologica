@@ -1,2 +1,3 @@
 [console_scripts]
 summa-technologica = summa_technologica.cli:main
+summa-v1-benchmark = summa_technologica.eval_v1:main

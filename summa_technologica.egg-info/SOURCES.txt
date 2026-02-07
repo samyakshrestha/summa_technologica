@@ -1,3 +1,4 @@
+LICENSE
 README.md
 pyproject.toml
 summa_technologica/__init__.py
@@ -5,8 +6,10 @@ summa_technologica/__main__.py
 summa_technologica/cli.py
 summa_technologica/config.py
 summa_technologica/crew.py
+summa_technologica/eval_v1.py
 summa_technologica/formatter.py
 summa_technologica/models.py
+summa_technologica/v2_contracts.py
 summa_technologica.egg-info/PKG-INFO
 summa_technologica.egg-info/SOURCES.txt
 summa_technologica.egg-info/dependency_links.txt
@@ -16,3 +19,4 @@ summa_technologica.egg-info/top_level.txt
 summa_technologica/config/agents.yaml
 summa_technologica/config/tasks.yaml
 tests/test_models.py
+tests/test_v2_contracts.py
