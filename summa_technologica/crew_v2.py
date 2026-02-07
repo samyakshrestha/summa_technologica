@@ -91,6 +91,7 @@ def run_summa_v2(
                 task_cfg=tasks_cfg["literature_scout_task"],
                 settings=settings,
                 inputs={
+                    "domain": cleaned_domain,
                     "problem_memo_json": _as_json(problem_memo),
                     "retrieval_json": _as_json(retrieval_result.to_dict()),
                 },
