@@ -214,7 +214,13 @@ def run_summa_v2(
             ),
         )
         stage_outputs["summa_composer"] = composer_output
-        summa_rendering = _require_nonempty_str(composer_output, "summa_rendering")
+        summa_rendering = _ensure_summa_rendering(
+            raw_rendering=_require_nonempty_str(composer_output, "summa_rendering"),
+            question=cleaned_question,
+            hypotheses=normalized_hypotheses,
+            ranked_ids=ranked_ids,
+            top=top,
+        )
 
         final_payload = {
             "question": cleaned_question,
@@ -241,7 +247,13 @@ def run_summa_v2(
                 retry_error=f"Final payload validation failed: {exc}",
             )
             stage_outputs["summa_composer_retry"] = composer_retry
-            final_payload["summa_rendering"] = _require_nonempty_str(composer_retry, "summa_rendering")
+            final_payload["summa_rendering"] = _ensure_summa_rendering(
+                raw_rendering=_require_nonempty_str(composer_retry, "summa_rendering"),
+                question=cleaned_question,
+                hypotheses=normalized_hypotheses,
+                ranked_ids=ranked_ids,
+                top=top,
+            )
             validate_v2_payload(final_payload, grounded_papers=retrieval_result.papers)
 
         return final_payload
@@ -632,19 +644,26 @@ def _apply_pairwise_ranking(
         hypothesis_id: {"novelty": 0, "plausibility": 0, "testability": 0}
         for hypothesis_id in ids
     }
+    points: dict[str, dict[str, float]] = {
+        hypothesis_id: {"novelty": 0.0, "plausibility": 0.0, "testability": 0.0}
+        for hypothesis_id in ids
+    }
     for comparison in normalized_comparisons:
         a = comparison["hypothesis_a_id"]
         b = comparison["hypothesis_b_id"]
         _accumulate_win(wins, "novelty", comparison["winner_novelty"], a, b)
         _accumulate_win(wins, "plausibility", comparison["winner_plausibility"], a, b)
         _accumulate_win(wins, "testability", comparison["winner_testability"], a, b)
+        _accumulate_points(points, "novelty", comparison["winner_novelty"], a, b)
+        _accumulate_points(points, "plausibility", comparison["winner_plausibility"], a, b)
+        _accumulate_points(points, "testability", comparison["winner_testability"], a, b)
 
     divisor = max(len(ids) - 1, 1)
     scores_by_id: dict[str, dict[str, float]] = {}
     for hypothesis_id in ids:
-        novelty = 1 + 4 * (wins[hypothesis_id]["novelty"] / divisor)
-        plausibility = 1 + 4 * (wins[hypothesis_id]["plausibility"] / divisor)
-        testability = 1 + 4 * (wins[hypothesis_id]["testability"] / divisor)
+        novelty = 1 + 4 * (points[hypothesis_id]["novelty"] / divisor)
+        plausibility = 1 + 4 * (points[hypothesis_id]["plausibility"] / divisor)
+        testability = 1 + 4 * (points[hypothesis_id]["testability"] / divisor)
         overall = 0.35 * novelty + 0.30 * plausibility + 0.35 * testability
         scores_by_id[hypothesis_id] = {
             "novelty": round(novelty, 3),
@@ -822,6 +841,22 @@ def _accumulate_win(
         wins[b][dimension] += 1
 
 
+def _accumulate_points(
+    points: dict[str, dict[str, float]],
+    dimension: str,
+    winner: str,
+    a: str,
+    b: str,
+) -> None:
+    if winner == "a":
+        points[a][dimension] += 1.0
+    elif winner == "b":
+        points[b][dimension] += 1.0
+    else:
+        points[a][dimension] += 0.5
+        points[b][dimension] += 0.5
+
+
 def _as_id(value: Any, fallback_counter: int) -> str:
     if isinstance(value, str) and value.strip():
         return value.strip()
@@ -853,6 +888,134 @@ def _normalize_doi(value: str | None) -> str:
 
 def _as_json(value: Any) -> str:
     return json.dumps(value, ensure_ascii=True)
+
+
+def _ensure_summa_rendering(
+    *,
+    raw_rendering: str,
+    question: str,
+    hypotheses: list[dict[str, Any]],
+    ranked_ids: list[str],
+    top: int,
+) -> str:
+    cleaned = raw_rendering.strip()
+    target_blocks = max(1, min(top, len(ranked_ids)))
+    if _is_valid_summa_rendering(cleaned, target_blocks):
+        return cleaned
+    return _build_summa_rendering(question, hypotheses, ranked_ids, top)
+
+
+def _is_valid_summa_rendering(rendering: str, expected_blocks: int) -> bool:
+    if not rendering:
+        return False
+
+    blocks = _split_summa_blocks(rendering)
+    if len(blocks) < expected_blocks:
+        return False
+    blocks = blocks[:expected_blocks]
+
+    required_markers = [
+        "question:",
+        "objections:",
+        "on the contrary",
+        "i answer that",
+        "replies to objections",
+    ]
+    for block in blocks:
+        lowered = block.lower()
+        if any(marker not in lowered for marker in required_markers):
+            return False
+        if not all(f"{n}." in block for n in [1, 2, 3]):
+            return False
+    return True
+
+
+def _build_summa_rendering(
+    question: str,
+    hypotheses: list[dict[str, Any]],
+    ranked_ids: list[str],
+    top: int,
+) -> str:
+    by_id = {
+        item["id"]: item
+        for item in hypotheses
+        if isinstance(item, dict) and isinstance(item.get("id"), str)
+    }
+    selected_ids = [hid for hid in ranked_ids[:top] if hid in by_id]
+    if not selected_ids:
+        return ""
+
+    blocks: list[str] = []
+    for index, hypothesis_id in enumerate(selected_ids):
+        hypothesis = by_id[hypothesis_id]
+        competitor_id = _pick_competitor_id(
+            ranked_ids=ranked_ids,
+            selected_index=index,
+            hypothesis_id=hypothesis_id,
+        )
+        on_the_contrary = _compose_on_the_contrary(
+            hypothesis=hypothesis,
+            competitor=by_id.get(competitor_id) if competitor_id else None,
+        )
+        block_lines: list[str] = []
+        block_lines.append(f"Question: {question}")
+        block_lines.append("")
+        block_lines.append("Objections:")
+        for objection in _ensure_objections(hypothesis.get("objections")):
+            block_lines.append(f"{objection['number']}. {objection['text']}")
+        block_lines.append("")
+        block_lines.append("On the contrary...")
+        block_lines.append(on_the_contrary)
+        block_lines.append("")
+        block_lines.append("I answer that...")
+        block_lines.append(_as_nonempty_text(hypothesis.get("statement"), "No thesis stated."))
+        block_lines.append("")
+        block_lines.append("Replies to objections:")
+        for reply in _ensure_replies(hypothesis.get("replies")):
+            block_lines.append(
+                f"Reply to Objection {reply['objection_number']}. {reply['text']}"
+            )
+        blocks.append("\n".join(block_lines).strip())
+
+    if len(blocks) == 1:
+        return blocks[0]
+    return "\n---\n".join(blocks)
+
+
+def _pick_competitor_id(
+    *,
+    ranked_ids: list[str],
+    selected_index: int,
+    hypothesis_id: str,
+) -> str | None:
+    if selected_index == 0:
+        if len(ranked_ids) > 1:
+            return ranked_ids[1]
+        return None
+    if selected_index == 1:
+        return ranked_ids[0] if ranked_ids else None
+    return ranked_ids[0] if ranked_ids else None
+
+
+def _compose_on_the_contrary(
+    *,
+    hypothesis: dict[str, Any],
+    competitor: dict[str, Any] | None,
+) -> str:
+    if competitor is not None:
+        competitor_statement = _as_nonempty_text(
+            competitor.get("statement"),
+            "a competing hypothesis claims otherwise",
+        )
+        return f"On the contrary, one may hold that {competitor_statement}"
+
+    strongest_objection = _ensure_objections(hypothesis.get("objections"))[0]["text"]
+    return f"On the contrary, the strongest objection states that {strongest_objection}"
+
+
+def _split_summa_blocks(rendering: str) -> list[str]:
+    raw_blocks = re.split(r"\n\s*---\s*\n", rendering.strip())
+    return [block.strip() for block in raw_blocks if block.strip()]
 
 
 def _render_template(template: str, inputs: dict[str, str]) -> str:
