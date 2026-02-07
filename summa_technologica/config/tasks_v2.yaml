@@ -1,0 +1,149 @@
+problem_framer_task:
+  description: >
+    You are given:
+    - Question: {question}
+    - Domain: {domain}
+    - Objective: {objective}
+
+    Produce a strict JSON object only with keys:
+    - restated_question: string
+    - assumptions: array of 3-7 strings
+    - scope_limits: array of 2-6 strings
+    - thesis_directions: array of exactly 2 strings
+    - refined_query: string (optimized for academic retrieval terms)
+
+    Requirements:
+    - No markdown, no prose outside JSON.
+    - Keep all fields concrete and domain-specific.
+  expected_output: >
+    Valid JSON problem memo for downstream retrieval and hypothesis generation.
+
+literature_scout_task:
+  description: >
+    You are given:
+    - Problem memo JSON: {problem_memo_json}
+    - Retrieved papers JSON from Semantic Scholar: {retrieval_json}
+
+    Produce a strict JSON object only with keys:
+    - evidence_summary: string
+    - high_signal_findings: array of 3-8 strings
+    - citation_shortlist: array of paper_id/doi strings selected from retrieved papers only
+    - gaps_and_uncertainties: array of 2-6 strings
+
+    Requirements:
+    - Do not invent papers.
+    - Use only IDs/DOIs that appear in retrieval_json.
+    - If no papers were retrieved, explicitly state that in evidence_summary and return empty citation_shortlist.
+  expected_output: >
+    Valid JSON evidence memo grounded in provided Semantic Scholar retrieval output.
+
+hypothesis_generator_task:
+  description: >
+    You are given:
+    - Question: {question}
+    - Domain: {domain}
+    - Objective: {objective}
+    - Problem memo JSON: {problem_memo_json}
+    - Evidence memo JSON: {evidence_memo_json}
+    - Grounded papers JSON: {retrieval_json}
+
+    Produce strict JSON with key:
+    - hypotheses: array of 3-5 objects
+
+    Each hypothesis object must contain keys:
+    - id: short string id like h1, h2
+    - title: string
+    - statement: string
+    - novelty_rationale: string
+    - plausibility_rationale: string
+    - testability_rationale: string
+    - falsifiable_predictions: array with at least 1 string
+    - minimal_experiments: array with at least 1 string
+    - citations: array of citation objects with keys title, authors, year and paper_id or doi
+
+    Distinctness requirements:
+    - Every pair must differ on at least one axis:
+      (a) causal mechanism, (b) empirical domain, or (c) theoretical framework.
+
+    Constraints:
+    - Use only grounded citations from retrieval_json.
+    - No markdown, no extra keys.
+  expected_output: >
+    Valid JSON with distinct hypotheses and grounded citations.
+
+critic_task:
+  description: >
+    You are given:
+    - Question: {question}
+    - Domain: {domain}
+    - Hypotheses JSON: {hypotheses_json}
+
+    Produce strict JSON with keys:
+    - hypotheses: array of kept hypotheses (3-5 items)
+      each hypothesis must include:
+      id, title, statement, novelty_rationale, plausibility_rationale,
+      testability_rationale, falsifiable_predictions, minimal_experiments, citations,
+      objections, replies
+      where objections is exactly 3 items with number/text and replies is exactly
+      3 items with objection_number/text
+    - distinctness_matrix: array of pair objects with keys:
+      hypothesis_a_id, hypothesis_b_id, axis, verdict, keep_id, collapse_id, rationale
+
+    Rules:
+    - verdict is either DISTINCT or NOT_DISTINCT.
+    - axis is one of mechanism, empirical_domain, theoretical_framework, none.
+    - For NOT_DISTINCT, keep_id and collapse_id must be non-empty and different.
+    - If collapsing, retain the stronger and more specific mechanism.
+    - Preserve citation grounding as provided.
+  expected_output: >
+    Valid JSON with audited distinctness and strengthened objections/replies.
+
+ranker_task:
+  description: >
+    You are given:
+    - Domain: {domain}
+    - Critic output JSON: {critic_json}
+
+    Produce strict JSON with key:
+    - comparisons: array of pairwise comparison objects
+
+    Each comparison object must contain:
+    - hypothesis_a_id
+    - hypothesis_b_id
+    - winner_novelty (a|b|tie)
+    - winner_plausibility (a|b|tie)
+    - winner_testability (a|b|tie)
+    - rationale: short string
+
+    Requirements:
+    - Cover all unordered pairs exactly once for surviving hypotheses.
+    - Use pairwise judgments, not raw numeric scores.
+    - No markdown, no extra keys.
+  expected_output: >
+    Valid JSON pairwise judgments for all hypothesis pairs.
+
+summa_composer_task:
+  description: >
+    You are given:
+    - Question: {question}
+    - Domain: {domain}
+    - Top hypotheses JSON: {top_hypotheses_json}
+    - Ranking order JSON: {ranking_json}
+    - Requested top count: {top_count}
+
+    Produce strict JSON with key:
+    - summa_rendering: string
+
+    Rendering rules:
+    - For each rendered block, include:
+      Question, Objections (1..3), On the contrary, I answer that, Replies to objections.
+    - If top_count is 1:
+      render one block for rank #1.
+      on_the_contrary must reflect rank #2 core claim, or strongest objection if no #2.
+    - If top_count is 3:
+      render up to three blocks (based on available hypotheses), separated by a line containing ---
+    - Objections and replies must align by number.
+    - Do not output JSON other than {"summa_rendering": "..."}.
+  expected_output: >
+    Valid JSON containing a complete Summa rendering string for top hypothesis/hypotheses.
+

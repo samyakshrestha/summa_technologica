@@ -25,8 +25,15 @@ def run_summa(*args, **kwargs):
     return _run_summa(*args, **kwargs)
 
 
+def run_summa_v2(*args, **kwargs):
+    from .crew_v2 import run_summa_v2 as _run_summa_v2
+
+    return _run_summa_v2(*args, **kwargs)
+
+
 __all__ = [
     "run_summa",
+    "run_summa_v2",
     "SummaResponse",
     "ContractValidationError",
     "PipelineErrorContract",

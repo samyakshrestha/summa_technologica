@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import argparse
+import json
 from pathlib import Path
 import sys
 
 from .config import Settings
 from .formatter import to_markdown
+from .formatter_v2 import to_markdown_v2
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -14,6 +16,12 @@ def build_parser() -> argparse.ArgumentParser:
         description="Generate a Summa-style structured response to a question.",
     )
     parser.add_argument("question", nargs="?", help="The idea or question to analyze.")
+    parser.add_argument(
+        "--mode",
+        choices=["v1", "v2"],
+        default="v1",
+        help="v1: Summa-only argument mode. v2: hypothesis engine with retrieval/ranking.",
+    )
     parser.add_argument(
         "--domain",
         default=None,
@@ -29,6 +37,13 @@ def build_parser() -> argparse.ArgumentParser:
         choices=["markdown", "json"],
         default="markdown",
         help="Output format.",
+    )
+    parser.add_argument(
+        "--top",
+        type=int,
+        choices=[1, 3],
+        default=1,
+        help="In v2 mode, render top 1 or top 3 Summa blocks.",
     )
     parser.add_argument(
         "--save",
@@ -50,6 +65,7 @@ def main() -> None:
 
     try:
         from .crew import run_summa
+        from .crew_v2 import run_summa_v2
     except ModuleNotFoundError as exc:
         if exc.name == "crewai":
             print(
@@ -66,12 +82,27 @@ def main() -> None:
     objective = args.objective or settings.default_objective
 
     try:
-        result = run_summa(question, domain=domain, objective=objective)
+        if args.mode == "v2":
+            result = run_summa_v2(
+                question,
+                domain=domain,
+                objective=objective,
+                top=args.top,
+            )
+        else:
+            result = run_summa(question, domain=domain, objective=objective)
     except Exception as exc:
         print(f"Error: {exc}", file=sys.stderr)
         raise SystemExit(1) from exc
 
-    text = result.to_json() if args.format == "json" else to_markdown(result)
+    if args.mode == "v2":
+        text = (
+            json.dumps(result, indent=2, ensure_ascii=True)
+            if args.format == "json"
+            else to_markdown_v2(result)
+        )
+    else:
+        text = result.to_json() if args.format == "json" else to_markdown(result)
     if args.save:
         args.save.write_text(text + "\n", encoding="utf-8")
     print(text)

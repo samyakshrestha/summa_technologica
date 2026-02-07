@@ -60,6 +60,8 @@ summa-technologica 'Your question here'
 summa-technologica 'Your question here' --domain 'physics'
 summa-technologica 'Your question here' --format json
 summa-technologica 'Your question here' --save output.md
+summa-technologica 'Your question here' --mode v2 --top 1
+summa-technologica 'Your question here' --mode v2 --top 3 --format json
 ```
 
 ## V1 baseline benchmarking (WP1)
@@ -130,11 +132,15 @@ summa_technologica/
     config/
         agents.yaml        # Agent roles, goals, and backstories
         tasks.yaml         # Task prompts and sequencing
+        agents_v2.yaml     # V2 six-agent roles
+        tasks_v2.yaml      # V2 stage prompts
     crew.py                # CrewAI workflow definition
+    crew_v2.py             # V2 six-stage pipeline with retry logic
     models.py              # Data structures and JSON validation
     v2_contracts.py        # V2 schema + validation + partial-failure contract
     cli.py                 # Command-line interface
     formatter.py           # Markdown output formatting
+    formatter_v2.py        # V2 markdown rendering
     config.py              # Environment/settings loader
     semantic_scholar.py    # Semantic Scholar retrieval + citation grounding
 schemas/
