@@ -3,6 +3,89 @@
 This document explains the exact V2 execution path from user question to final output.
 Use it as the canonical memory of how V2 works.
 
+## How This Project Works (Plain English)
+
+Summa Technologica takes a scientific question and produces a research hypothesis
+written in the style of Thomas Aquinas's *Summa Theologica* — with objections,
+counterarguments, and replies.
+
+It does this by chaining 7 LLM calls together, where each call builds on the
+output of the previous one. Think of it like an assembly line in a factory:
+
+```
+User's question
+    │
+    ▼
+┌──────────────────┐
+│  Problem Framer  │  "What exactly are we asking? What assumptions are we making?"
+└────────┬─────────┘
+         ▼
+┌──────────────────┐
+│ Paper Retrieval  │  Searches Semantic Scholar (a real academic database) for papers
+└────────┬─────────┘
+         ▼
+┌──────────────────┐
+│ Literature Scout │  "What do these papers actually say? What are the key findings?"
+└────────┬─────────┘
+         ▼
+┌──────────────────┐
+│ Hypothesis Gen   │  "Based on the evidence, here are 3-5 possible hypotheses"
+└────────┬─────────┘
+         ▼
+┌──────────────────┐
+│     Critic       │  "What's wrong with each hypothesis? Here are objections + replies"
+└────────┬─────────┘
+         ▼
+┌──────────────────┐
+│     Ranker       │  "Which hypothesis is best?" (compares them head-to-head)
+└────────┬─────────┘
+         ▼
+┌──────────────────┐
+│ Summa Composer   │  Formats the winner into Summa Theologica style
+└────────┬─────────┘
+         ▼
+    Final output
+```
+
+**Why is this split into so many steps?** Because one LLM call can't do all of
+this well. Asking a single prompt to "find papers, generate hypotheses, critique
+them, rank them, and format them" produces mediocre results. By splitting the
+work, each step has a focused job and does it better.
+
+**Why so many Python files?** Each file handles one responsibility:
+
+| File | One-line explanation |
+|------|---------------------|
+| `config.py` | Reads your settings (API keys, which LLM to use) from the `.env` file |
+| `crew_v2.py` | The "boss" — runs the 7 steps in order, handles errors |
+| `crew_v2_stages.py` | The "worker" — actually sends prompts to the LLM and gets responses back |
+| `crew_v2_postprocess.py` | The "quality checker" — cleans up messy LLM output, ranks hypotheses, builds the final rendering |
+| `semantic_scholar.py` | The "librarian" — fetches real academic papers from the internet |
+| `v2_contracts.py` | The "inspector" — checks that the final output has all required fields in the right format |
+| `config/tasks_v2.yaml` | The prompt templates — the actual instructions given to the LLM at each step |
+| `config/agents_v2.yaml` | The role descriptions — tells the LLM who it's pretending to be at each step |
+
+**Key concept: why does "postprocessing" exist?** LLMs are unreliable. When you
+ask an LLM to return JSON with specific fields, it sometimes:
+- Forgets a field entirely
+- Makes up citations to papers that don't exist
+- Merges two sections into one line
+- Returns slightly different formats each time
+
+The postprocessing layer catches all of these problems and fixes them. If the
+LLM forgot to include objections, it adds placeholder text. If the LLM cited
+a fake paper, it removes that citation and substitutes a real one from Semantic
+Scholar. This is why the pipeline is reliable even though individual LLM calls
+are not.
+
+---
+
+## Technical Reference (for debugging and development)
+
+Everything below is the detailed technical map. You don't need to read this
+to understand the project — the section above covers the "what" and "why."
+This section covers the "exactly how, line by line."
+
 ## 1) Entry Points
 
 ## CLI path
@@ -195,9 +278,22 @@ summa-technologica ... --mode v2
 - `schemas/hypothesis_schema.json`: contract schema.
 
 ## 12) Practical Mental Model
-Think of V2 as three layers:
-1. **Execution layer** runs prompt stages (`crew_v2_stages.py`).
-2. **Postprocess layer** turns model text into deterministic structured outputs (`crew_v2_postprocess.py`).
-3. **Contract layer** rejects structurally invalid outputs (`v2_contracts.py`).
 
-`crew_v2.py` is the conductor that connects those three layers.
+Think of V2 as a restaurant:
+
+| Role | File | What it does |
+|------|------|-------------|
+| **Restaurant manager** | `crew_v2.py` | Decides the order of operations, handles problems, talks to the customer |
+| **Chef** | `crew_v2_stages.py` | Actually cooks the food (sends prompts to the LLM, gets responses) |
+| **Quality control** | `crew_v2_postprocess.py` | Checks the dish before it leaves the kitchen (cleans up messy output) |
+| **Health inspector** | `v2_contracts.py` | Final check that the dish meets all regulations (schema validation) |
+| **Grocery supplier** | `semantic_scholar.py` | Brings in fresh ingredients (real academic papers from the internet) |
+| **Recipe book** | `config/tasks_v2.yaml` | The instructions the chef follows (prompt templates) |
+| **Staff roster** | `config/agents_v2.yaml` | Who the chef pretends to be for each dish (agent role descriptions) |
+| **Menu / settings** | `config.py` | What restaurant we're running today (which LLM, which API keys) |
+
+The key insight: **the LLM (chef) never sees the other files directly.**
+The manager (`crew_v2.py`) reads the recipe (`tasks_v2.yaml`), fills in the
+specifics, hands it to the chef (`crew_v2_stages.py`), gets the result back,
+sends it through quality control (`crew_v2_postprocess.py`), and then the
+health inspector (`v2_contracts.py`) gives final approval.
