@@ -59,7 +59,10 @@ hypothesis_generator_task:
     - testability_rationale: string
     - falsifiable_predictions: array with at least 1 string
     - minimal_experiments: array with at least 1 string
-    - citations: array of citation objects with keys title, authors, year and paper_id or doi
+    - citations: array of citation objects with keys title, authors, year and paper_id or doi.
+      IMPORTANT: Copy the paper_id value exactly as it appears in retrieval_json.
+      Do not abbreviate, modify, or invent paper_id values.
+      Each hypothesis should cite at least 1 paper from retrieval_json.
 
     Distinctness requirements:
     - Every pair must differ on at least one axis:
@@ -80,12 +83,19 @@ critic_task:
 
     Produce strict JSON with keys:
     - hypotheses: array of kept hypotheses (3-5 items)
-      each hypothesis must include:
+      each hypothesis must include ALL of:
       id, title, statement, novelty_rationale, plausibility_rationale,
       testability_rationale, falsifiable_predictions, minimal_experiments, citations,
       objections, replies
-      where objections is exactly 3 items with number/text and replies is exactly
-      3 items with objection_number/text
+
+    CRITICAL - objections and replies format:
+    Every hypothesis MUST have exactly 3 objections and exactly 3 replies.
+    Do NOT omit them. Do NOT return fewer than 3.
+    objections format: [{"number": 1, "text": "..."}, {"number": 2, "text": "..."}, {"number": 3, "text": "..."}]
+    replies format: [{"objection_number": 1, "text": "..."}, {"objection_number": 2, "text": "..."}, {"objection_number": 3, "text": "..."}]
+    Each objection should identify a genuine weakness, empirical gap, or logical flaw.
+    Each reply should directly address the corresponding objection.
+
     - distinctness_matrix: array of pair objects with keys:
       hypothesis_a_id, hypothesis_b_id, axis, verdict, keep_id, collapse_id, rationale
 
