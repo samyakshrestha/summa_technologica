@@ -1,3 +1,5 @@
+"""Unit tests for the test models module behavior."""
+
 import unittest
 
 from summa_technologica.models import parse_summa_json
@@ -5,6 +7,7 @@ from summa_technologica.models import parse_summa_json
 
 class ParseSummaJsonTests(unittest.TestCase):
     def test_parses_valid_payload(self) -> None:
+        """Verify that parses valid payload."""
         payload = """
         {
           "question": "Is symmetry foundational in physics?",
@@ -28,6 +31,7 @@ class ParseSummaJsonTests(unittest.TestCase):
         self.assertEqual(len(result.replies), 3)
 
     def test_rejects_wrong_objection_numbers(self) -> None:
+        """Verify that rejects wrong objection numbers."""
         payload = """
         {
           "question": "Q",
@@ -49,6 +53,7 @@ class ParseSummaJsonTests(unittest.TestCase):
             parse_summa_json(payload)
 
     def test_rejects_missing_json(self) -> None:
+        """Verify that rejects missing json."""
         with self.assertRaises(ValueError):
             parse_summa_json("not json")
 

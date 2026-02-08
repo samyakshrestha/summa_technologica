@@ -1,3 +1,5 @@
+"""Core utilities for config in Summa Technologica."""
+
 from dataclasses import dataclass
 import os
 
@@ -5,12 +7,14 @@ try:
     from dotenv import load_dotenv
 except ModuleNotFoundError:  # pragma: no cover - fallback for minimally provisioned envs
     def load_dotenv() -> bool:
+        """Load dotenv."""
         return False
 
 load_dotenv()
 
 
 def _as_bool(value: str, default: bool = False) -> bool:
+    """Internal helper to as bool."""
     if value is None:
         return default
     return value.strip().lower() in {"1", "true", "yes", "on"}
@@ -28,6 +32,7 @@ class Settings:
 
     @staticmethod
     def from_env() -> "Settings":
+        """From env."""
         model = (
             os.getenv("SUMMA_MODEL")
             or os.getenv("MODEL")

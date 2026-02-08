@@ -20,12 +20,14 @@ from .v2_contracts import (
 
 
 def run_summa(*args, **kwargs):
+    """Run summa."""
     from .crew import run_summa as _run_summa
 
     return _run_summa(*args, **kwargs)
 
 
 def run_summa_v2(*args, **kwargs):
+    """Run summa v2."""
     from .crew_v2 import run_summa_v2 as _run_summa_v2
 
     return _run_summa_v2(*args, **kwargs)

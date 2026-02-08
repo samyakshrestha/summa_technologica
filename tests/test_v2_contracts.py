@@ -1,3 +1,5 @@
+"""Unit tests for the test v2 contracts module behavior."""
+
 import unittest
 
 from summa_technologica.v2_contracts import (
@@ -19,6 +21,7 @@ except ModuleNotFoundError:
 
 
 def _valid_payload() -> dict:
+    """Internal helper to valid payload."""
     return {
         "question": "Can topological ideas improve quantum error correction?",
         "domain": "physics",
@@ -139,6 +142,7 @@ def _valid_payload() -> dict:
 
 class PartialFailureContractTests(unittest.TestCase):
     def test_build_partial_failure_payload(self) -> None:
+        """Verify that build partial failure payload."""
         payload = build_partial_failure_payload(
             question="Q",
             domain="physics",
@@ -156,6 +160,7 @@ class PartialFailureContractTests(unittest.TestCase):
         self.assertEqual(payload["error"]["stage"], "ranker")
 
     def test_partial_failure_requires_stage_outputs(self) -> None:
+        """Verify that partial failure requires stage outputs."""
         bad_payload = {
             "question": "Q",
             "domain": "physics",
@@ -175,32 +180,38 @@ class PartialFailureContractTests(unittest.TestCase):
 @unittest.skipUnless(HAS_JSONSCHEMA, "jsonschema not installed")
 class V2SchemaValidationTests(unittest.TestCase):
     def test_schema_path_exists(self) -> None:
+        """Verify that schema path exists."""
         self.assertTrue(resolve_v2_schema_path().exists())
 
     def test_valid_payload_passes(self) -> None:
+        """Verify that valid payload passes."""
         payload = _valid_payload()
         validated = validate_v2_payload(payload)
         self.assertEqual(validated["ranked_hypothesis_ids"][0], "h1")
 
     def test_ranked_ids_must_match_hypotheses(self) -> None:
+        """Verify that ranked ids must match hypotheses."""
         payload = _valid_payload()
         payload["ranked_hypothesis_ids"] = ["h1"]
         with self.assertRaises(ContractValidationError):
             validate_v2_payload(payload)
 
     def test_citation_requires_paper_id_or_doi(self) -> None:
+        """Verify that citation requires paper id or doi."""
         payload = _valid_payload()
         payload["hypotheses"][0]["citations"][0].pop("paper_id")
         with self.assertRaises(ContractValidationError):
             validate_v2_payload(payload)
 
     def test_overall_formula_is_checked(self) -> None:
+        """Verify that overall formula is checked."""
         payload = _valid_payload()
         payload["hypotheses"][0]["scores"]["overall"] = 5.0
         with self.assertRaises(ContractValidationError):
             validate_v2_payload(payload)
 
     def test_grounded_citations_are_enforced_when_catalog_is_provided(self) -> None:
+        """Verify that grounded citations are enforced when catalog is provided."""
         payload = _valid_payload()
         grounded = [
             SemanticScholarPaper(

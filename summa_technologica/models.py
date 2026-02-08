@@ -1,3 +1,5 @@
+"""Core utilities for models in Summa Technologica."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -27,6 +29,7 @@ class SummaResponse:
     replies: list[Reply]
 
     def to_dict(self) -> dict[str, Any]:
+        """To dict."""
         return {
             "question": self.question,
             "objections": [
@@ -41,10 +44,12 @@ class SummaResponse:
         }
 
     def to_json(self) -> str:
+        """To json."""
         return json.dumps(self.to_dict(), indent=2, ensure_ascii=True)
 
 
 def parse_summa_json(raw: str) -> SummaResponse:
+    """Parse summa json."""
     payload = _extract_json(raw)
     question = _require_str(payload, "question")
     on_the_contrary = _require_str(payload, "on_the_contrary")
@@ -93,6 +98,7 @@ def parse_summa_json(raw: str) -> SummaResponse:
 
 
 def _extract_json(raw: str) -> dict[str, Any]:
+    """Internal helper to extract json."""
     text = raw.strip()
     text = re.sub(r"^```(?:json)?\s*", "", text)
     text = re.sub(r"\s*```$", "", text)
@@ -112,6 +118,7 @@ def _extract_json(raw: str) -> dict[str, Any]:
 
 
 def _require_str(payload: dict[str, Any], key: str) -> str:
+    """Internal helper to require str."""
     value = payload.get(key)
     if not isinstance(value, str) or not value.strip():
         raise ValueError(f"Field '{key}' must be a non-empty string.")
@@ -119,6 +126,7 @@ def _require_str(payload: dict[str, Any], key: str) -> str:
 
 
 def _require_int(payload: dict[str, Any], key: str) -> int:
+    """Internal helper to require int."""
     value = payload.get(key)
     if not isinstance(value, int):
         raise ValueError(f"Field '{key}' must be an integer.")
@@ -126,6 +134,7 @@ def _require_int(payload: dict[str, Any], key: str) -> int:
 
 
 def _validate_structure(objections: list[Objection], replies: list[Reply]) -> None:
+    """Internal helper to validate structure."""
     expected_numbers = [1, 2, 3]
     objection_numbers = [item.number for item in objections]
     reply_numbers = [item.objection_number for item in replies]

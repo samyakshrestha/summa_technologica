@@ -1,3 +1,5 @@
+"""Core utilities for semantic scholar in Summa Technologica."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -26,6 +28,7 @@ class SemanticScholarPaper:
     source_query: str
 
     def to_citation_dict(self) -> dict[str, Any]:
+        """To citation dict."""
         payload: dict[str, Any] = {
             "title": self.title,
             "authors": self.authors,
@@ -38,6 +41,7 @@ class SemanticScholarPaper:
         return payload
 
     def to_dict(self) -> dict[str, Any]:
+        """To dict."""
         return {
             "paper_id": self.paper_id,
             "title": self.title,
@@ -60,6 +64,7 @@ class RetrievalResult:
     errors: list[str]
 
     def to_dict(self) -> dict[str, Any]:
+        """To dict."""
         return {
             "status": self.status,
             "message": self.message,
@@ -70,6 +75,7 @@ class RetrievalResult:
 
 
 def build_dual_queries(question: str, refined_query: str | None = None) -> list[str]:
+    """Build dual queries."""
     candidates = [question.strip(), (refined_query or "").strip()]
     queries: list[str] = []
     for query in candidates:
@@ -87,6 +93,7 @@ def search_semantic_scholar(
     timeout_seconds: float = 20.0,
     fields: str = DEFAULT_FIELDS,
 ) -> list[SemanticScholarPaper]:
+    """Search semantic scholar."""
     if not query.strip():
         return []
 
@@ -132,6 +139,7 @@ def retrieve_grounded_papers(
     per_query_limit: int = 10,
     timeout_seconds: float = 20.0,
 ) -> RetrievalResult:
+    """Retrieve grounded papers."""
     queries = build_dual_queries(question, refined_query)
     if not queries:
         return RetrievalResult(
@@ -189,6 +197,7 @@ def validate_citations_against_papers(
     citations: list[dict[str, Any]],
     papers: list[SemanticScholarPaper],
 ) -> list[str]:
+    """Validate citations against papers."""
     valid_ids = {paper.paper_id for paper in papers if paper.paper_id}
     valid_dois = {_normalize_doi(paper.doi) for paper in papers if paper.doi}
     issues: list[str] = []
@@ -226,6 +235,7 @@ def validate_citations_against_papers(
 
 
 def _build_headers(api_key: str | None) -> dict[str, str]:
+    """Internal helper to build headers."""
     headers = {"Accept": "application/json"}
     if api_key and api_key.strip():
         headers["x-api-key"] = api_key.strip()
@@ -233,6 +243,7 @@ def _build_headers(api_key: str | None) -> dict[str, str]:
 
 
 def _parse_paper(payload: dict[str, Any], source_query: str) -> SemanticScholarPaper | None:
+    """Internal helper to parse paper."""
     if not isinstance(payload, dict):
         return None
 
@@ -278,6 +289,7 @@ def _parse_paper(payload: dict[str, Any], source_query: str) -> SemanticScholarP
 
 
 def _dedupe_key(paper: SemanticScholarPaper) -> str:
+    """Internal helper to dedupe key."""
     if paper.paper_id:
         return f"paper_id:{paper.paper_id}"
     if paper.doi:
@@ -286,6 +298,7 @@ def _dedupe_key(paper: SemanticScholarPaper) -> str:
 
 
 def _normalize_doi(value: str | None) -> str:
+    """Internal helper to normalize doi."""
     if not value:
         return ""
     normalized = value.strip().lower()
@@ -295,6 +308,7 @@ def _normalize_doi(value: str | None) -> str:
 
 
 def _read_http_error_body(exc: HTTPError) -> str:
+    """Internal helper to read http error body."""
     try:
         raw = exc.read()
     except Exception:  # pragma: no cover

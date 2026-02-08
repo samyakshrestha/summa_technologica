@@ -1,3 +1,5 @@
+"""Core utilities for cli in Summa Technologica."""
+
 from __future__ import annotations
 
 import argparse
@@ -11,6 +13,7 @@ from .formatter_v2 import to_markdown_v2
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         prog="summa-technologica",
         description="Generate a Summa-style structured response to a question.",
@@ -54,6 +57,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> None:
+    """Run the main entrypoint for this module."""
     parser = build_parser()
     args = parser.parse_args()
     settings = Settings.from_env()

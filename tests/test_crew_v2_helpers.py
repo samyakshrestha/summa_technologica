@@ -1,3 +1,5 @@
+"""Unit tests for the test crew v2 helpers module behavior."""
+
 import unittest
 
 from summa_technologica.crew_v2 import (
@@ -12,6 +14,7 @@ from summa_technologica.semantic_scholar import SemanticScholarPaper
 
 class CrewV2HelperTests(unittest.TestCase):
     def test_render_template_preserves_literal_json_braces(self) -> None:
+        """Verify that render template preserves literal json braces."""
         template = (
             "Question: {question}\n"
             "Do not output JSON other than {\"summa_rendering\": \"...\"}."
@@ -21,6 +24,7 @@ class CrewV2HelperTests(unittest.TestCase):
         self.assertIn("{\"summa_rendering\": \"...\"}", rendered)
 
     def test_apply_pairwise_ranking(self) -> None:
+        """Verify that apply pairwise ranking."""
         hypotheses = [
             {
                 "id": "h1",
@@ -71,6 +75,7 @@ class CrewV2HelperTests(unittest.TestCase):
             self.assertIn("pairwise_record", item)
 
     def test_apply_pairwise_ranking_tie_centers_scores(self) -> None:
+        """Verify that apply pairwise ranking tie centers scores."""
         hypotheses = [
             {
                 "id": "h1",
@@ -120,6 +125,7 @@ class CrewV2HelperTests(unittest.TestCase):
         self.assertAlmostEqual(score_h2["overall"], 3.0, places=3)
 
     def test_normalize_generated_hypotheses_filters_ungrounded_citations(self) -> None:
+        """Verify that normalize generated hypotheses filters ungrounded citations."""
         grounded = [
             SemanticScholarPaper(
                 paper_id="p1",
@@ -175,6 +181,7 @@ class CrewV2HelperTests(unittest.TestCase):
         )
 
     def test_normalize_generated_hypotheses_falls_back_to_grounded_citations(self) -> None:
+        """Verify that normalize generated hypotheses falls back to grounded citations."""
         grounded = [
             SemanticScholarPaper(
                 paper_id="p1",
@@ -233,6 +240,7 @@ class CrewV2HelperTests(unittest.TestCase):
         )
 
     def test_ensure_summa_rendering_builds_fallback_top3(self) -> None:
+        """Verify that ensure summa rendering builds fallback top3."""
         hypotheses = [
             {
                 "id": "h1",
@@ -271,6 +279,7 @@ class CrewV2HelperTests(unittest.TestCase):
         self.assertIn("Statement 2", rendered)
 
     def test_hydrate_summa_triplets_adds_missing_fields(self) -> None:
+        """Verify that hydrate summa triplets adds missing fields."""
         hydrated = _hydrate_summa_triplets(
             [
                 {

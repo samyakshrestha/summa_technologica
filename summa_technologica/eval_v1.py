@@ -1,3 +1,5 @@
+"""Core utilities for eval v1 in Summa Technologica."""
+
 from __future__ import annotations
 
 import argparse
@@ -26,6 +28,7 @@ class BenchmarkCase:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         prog="summa-v1-benchmark",
         description="Run V1 benchmark suite and persist baseline outputs.",
@@ -84,6 +87,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> None:
+    """Run the main entrypoint for this module."""
     parser = build_parser()
     args = parser.parse_args()
 
@@ -164,6 +168,7 @@ def main() -> None:
 
 
 def load_benchmarks(path: Path) -> list[BenchmarkCase]:
+    """Load benchmarks."""
     try:
         import yaml
     except ModuleNotFoundError as exc:
@@ -214,6 +219,7 @@ def filter_cases(
     domains: list[str],
     limit: int | None,
 ) -> list[BenchmarkCase]:
+    """Filter cases."""
     filtered = cases
     if domains:
         allowed = {value.strip().lower() for value in domains if value.strip()}
@@ -232,6 +238,7 @@ def run_case(
     run_summa: Callable[..., Any],
     objective: str | None,
 ) -> dict[str, Any]:
+    """Run case."""
     started_at = utc_now()
     t0 = time.perf_counter()
 
@@ -266,6 +273,7 @@ def build_summary(
     manifest: dict[str, Any],
     finished_at_utc: str,
 ) -> dict[str, Any]:
+    """Build summary."""
     succeeded = [item for item in records if item["status"] == "ok"]
     failed = [item for item in records if item["status"] == "error"]
     avg_duration = (
@@ -295,6 +303,7 @@ def build_summary(
 
 
 def build_summary_markdown(summary: dict[str, Any]) -> str:
+    """Build summary markdown."""
     lines: list[str] = []
     lines.append("# V1 Baseline Summary")
     lines.append("")
@@ -320,6 +329,7 @@ def build_summary_markdown(summary: dict[str, Any]) -> str:
 
 
 def create_run_dir(output_root: Path, run_label: str | None) -> Path:
+    """Create run dir."""
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     suffix = safe_slug(run_label) if run_label else ""
     dirname = f"{stamp}_{suffix}" if suffix else stamp
@@ -333,6 +343,7 @@ def create_run_dir(output_root: Path, run_label: str | None) -> Path:
 
 
 def safe_slug(value: str | None) -> str:
+    """Safe slug."""
     if not value:
         return ""
     slug = re.sub(r"[^a-zA-Z0-9._-]+", "_", value.strip())
@@ -340,6 +351,7 @@ def safe_slug(value: str | None) -> str:
 
 
 def read_nonempty_str(payload: dict[str, Any], key: str, idx: int) -> str:
+    """Read nonempty str."""
     value = payload.get(key)
     if not isinstance(value, str) or not value.strip():
         raise ValueError(f"Benchmark item #{idx} field '{key}' must be a non-empty string.")
@@ -347,6 +359,7 @@ def read_nonempty_str(payload: dict[str, Any], key: str, idx: int) -> str:
 
 
 def read_keywords(payload: dict[str, Any], idx: int) -> list[str]:
+    """Read keywords."""
     value = payload.get("relevance_keywords")
     if not isinstance(value, list) or not (1 <= len(value) <= 3):
         raise ValueError(
@@ -364,6 +377,7 @@ def read_keywords(payload: dict[str, Any], idx: int) -> list[str]:
 
 
 def validate_domain_coverage(cases: list[BenchmarkCase]) -> None:
+    """Validate domain coverage."""
     counts = {domain: 0 for domain in REQUIRED_DOMAINS}
     for case in cases:
         if case.domain in counts:
@@ -378,18 +392,22 @@ def validate_domain_coverage(cases: list[BenchmarkCase]) -> None:
 
 
 def write_json(path: Path, payload: dict[str, Any]) -> None:
+    """Write json."""
     path.write_text(json.dumps(payload, indent=2, ensure_ascii=True) + "\n", encoding="utf-8")
 
 
 def write_text(path: Path, text: str) -> None:
+    """Write text."""
     path.write_text(text, encoding="utf-8")
 
 
 def utc_now() -> str:
+    """Utc now."""
     return datetime.now(timezone.utc).isoformat()
 
 
 def _load_v1_runner() -> Callable[..., Any]:
+    """Internal helper to load v1 runner."""
     try:
         from .crew import run_summa
     except ModuleNotFoundError as exc:

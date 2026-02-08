@@ -1,7 +1,10 @@
+"""Core utilities for formatter in Summa Technologica."""
+
 from .models import SummaResponse
 
 
 def to_markdown(result: SummaResponse) -> str:
+    """To markdown."""
     lines: list[str] = []
     lines.append(f"Question: {result.question}")
     lines.append("")

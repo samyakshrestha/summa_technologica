@@ -1,3 +1,5 @@
+"""Core utilities for v2 contracts in Summa Technologica."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -23,6 +25,7 @@ class PipelineErrorContract:
     retry_attempted: bool
 
     def to_dict(self) -> dict[str, Any]:
+        """To dict."""
         return {
             "stage": self.stage,
             "message": self.message,
@@ -31,6 +34,7 @@ class PipelineErrorContract:
 
 
 def resolve_v2_schema_path(schema_path: Path | None = None) -> Path:
+    """Resolve v2 schema path."""
     if schema_path is not None:
         if not schema_path.exists():
             raise FileNotFoundError(f"Schema file not found: {schema_path}")
@@ -51,6 +55,7 @@ def resolve_v2_schema_path(schema_path: Path | None = None) -> Path:
 
 
 def load_v2_schema(schema_path: Path | None = None) -> dict[str, Any]:
+    """Load v2 schema."""
     path = resolve_v2_schema_path(schema_path)
     content = path.read_text(encoding="utf-8")
     parsed = json.loads(content)
@@ -63,6 +68,7 @@ def parse_and_validate_v2_json(
     raw: str,
     schema_path: Path | None = None,
 ) -> dict[str, Any]:
+    """Parse and validate v2 json."""
     payload = _extract_json_object(raw)
     return validate_v2_payload(payload, schema_path=schema_path)
 
@@ -72,6 +78,7 @@ def validate_v2_payload(
     schema_path: Path | None = None,
     grounded_papers: list[SemanticScholarPaper] | None = None,
 ) -> dict[str, Any]:
+    """Validate v2 payload."""
     if not isinstance(payload, dict):
         raise ContractValidationError("V2 payload must be a JSON object.")
 
@@ -130,6 +137,7 @@ def build_partial_failure_payload(
     ranked_hypothesis_ids: list[str] | None = None,
     summa_rendering: str = "",
 ) -> dict[str, Any]:
+    """Build partial failure payload."""
     payload = {
         "question": question,
         "domain": domain,
@@ -143,6 +151,7 @@ def build_partial_failure_payload(
 
 
 def _validate_against_jsonschema(payload: dict[str, Any], schema: dict[str, Any]) -> None:
+    """Internal helper to validate against jsonschema."""
     try:
         from jsonschema import Draft202012Validator
     except ModuleNotFoundError as exc:
@@ -163,6 +172,7 @@ def _validate_against_jsonschema(payload: dict[str, Any], schema: dict[str, Any]
 
 
 def _validate_hypothesis_ids(payload: dict[str, Any]) -> None:
+    """Internal helper to validate hypothesis ids."""
     hypotheses = payload["hypotheses"]
     hypothesis_ids: list[str] = []
     for hypothesis in hypotheses:
@@ -181,6 +191,7 @@ def _validate_hypothesis_ids(payload: dict[str, Any]) -> None:
 
 
 def _validate_hypothesis_triplets(payload: dict[str, Any]) -> None:
+    """Internal helper to validate hypothesis triplets."""
     expected_numbers = [1, 2, 3]
     for hypothesis in payload["hypotheses"]:
         objections = sorted(item["number"] for item in hypothesis["objections"])
@@ -196,6 +207,7 @@ def _validate_hypothesis_triplets(payload: dict[str, Any]) -> None:
 
 
 def _validate_pairwise_references(payload: dict[str, Any]) -> None:
+    """Internal helper to validate pairwise references."""
     valid_ids = {item["id"] for item in payload["hypotheses"]}
     for hypothesis in payload["hypotheses"]:
         comparisons = hypothesis["pairwise_record"]["comparisons"]
@@ -214,6 +226,7 @@ def _validate_pairwise_references(payload: dict[str, Any]) -> None:
 
 
 def _validate_score_formula(payload: dict[str, Any]) -> None:
+    """Internal helper to validate score formula."""
     for hypothesis in payload["hypotheses"]:
         scores = hypothesis["scores"]
         expected = (
@@ -231,6 +244,7 @@ def _validate_citation_grounding(
     payload: dict[str, Any],
     grounded_papers: list[SemanticScholarPaper],
 ) -> None:
+    """Internal helper to validate citation grounding."""
     for hypothesis in payload["hypotheses"]:
         issues = validate_citations_against_papers(
             citations=hypothesis["citations"],
@@ -244,6 +258,7 @@ def _validate_citation_grounding(
 
 
 def _extract_json_object(raw: str) -> dict[str, Any]:
+    """Internal helper to extract json object."""
     text = raw.strip()
     text = re.sub(r"^```(?:json)?\s*", "", text)
     text = re.sub(r"\s*```$", "", text)
@@ -265,6 +280,7 @@ def _extract_json_object(raw: str) -> dict[str, Any]:
 
 
 def _require_nonempty_str(payload: dict[str, Any], key: str) -> str:
+    """Internal helper to require nonempty str."""
     value = payload.get(key)
     if not isinstance(value, str) or not value.strip():
         raise ContractValidationError(f"Field '{key}' must be a non-empty string.")

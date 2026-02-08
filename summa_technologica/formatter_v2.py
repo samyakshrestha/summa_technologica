@@ -1,9 +1,12 @@
+"""Core utilities for formatter v2 in Summa Technologica."""
+
 from __future__ import annotations
 
 from typing import Any
 
 
 def to_markdown_v2(payload: dict[str, Any]) -> str:
+    """To markdown v2."""
     lines: list[str] = []
     lines.append(f"Question: {payload.get('question', '')}")
     lines.append(f"Domain: {payload.get('domain', '')}")

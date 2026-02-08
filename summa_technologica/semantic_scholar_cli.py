@@ -1,3 +1,5 @@
+"""Core utilities for semantic scholar cli in Summa Technologica."""
+
 from __future__ import annotations
 
 import argparse
@@ -9,6 +11,7 @@ from .semantic_scholar import retrieve_grounded_papers
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         prog="summa-semantic-search",
         description="Run dual-query Semantic Scholar retrieval and print structured JSON.",
@@ -29,6 +32,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> None:
+    """Run the main entrypoint for this module."""
     args = build_parser().parse_args()
     settings = Settings.from_env()
 

@@ -1,3 +1,5 @@
+"""Core utilities for eval compare in Summa Technologica."""
+
 from __future__ import annotations
 
 import argparse
@@ -25,6 +27,7 @@ from .v2_contracts import ContractValidationError, validate_v2_payload
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         prog="summa-benchmark-compare",
         description="Run benchmark comparison between V1 and V2 and emit analysis reports.",
@@ -100,6 +103,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> None:
+    """Run the main entrypoint for this module."""
     args = build_parser().parse_args()
     if args.skip_v1 and args.skip_v2:
         print("Error: cannot skip both v1 and v2.", file=sys.stderr)
@@ -192,6 +196,7 @@ def run_case_pair(
     objective: str | None,
     top: int,
 ) -> dict[str, Any]:
+    """Run case pair."""
     record: dict[str, Any] = {
         "benchmark": asdict(case),
     }
@@ -213,6 +218,7 @@ def run_case_v1(
     run_v1: Callable[..., SummaResponse],
     objective: str | None,
 ) -> dict[str, Any]:
+    """Run case v1."""
     started = utc_now()
     t0 = time.perf_counter()
     try:
@@ -244,6 +250,7 @@ def run_case_v2(
     objective: str | None,
     top: int,
 ) -> dict[str, Any]:
+    """Run case v2."""
     started = utc_now()
     t0 = time.perf_counter()
     try:
@@ -268,6 +275,7 @@ def run_case_v2(
 
 
 def evaluate_v1_metrics(case: BenchmarkCase, payload: dict[str, Any]) -> dict[str, Any]:
+    """Evaluate v1 metrics."""
     text_blob = json.dumps(payload, ensure_ascii=False).lower()
     return {
         "summa_complete": is_summa_complete_v1(payload),
@@ -277,6 +285,7 @@ def evaluate_v1_metrics(case: BenchmarkCase, payload: dict[str, Any]) -> dict[st
 
 
 def evaluate_v2_metrics(case: BenchmarkCase, payload: dict[str, Any]) -> dict[str, Any]:
+    """Evaluate v2 metrics."""
     schema_valid = True
     schema_error = ""
     try:
@@ -332,6 +341,7 @@ def build_comparison_summary(
     finished_at_utc: str,
     model: str,
 ) -> dict[str, Any]:
+    """Build comparison summary."""
     v1_stats = summarize_mode(records, "v1")
     v2_stats = summarize_mode(records, "v2")
     go_no_go = evaluate_go_no_go(v2_stats=v2_stats, model=model)
@@ -348,6 +358,7 @@ def build_comparison_summary(
 
 
 def summarize_mode(records: list[dict[str, Any]], mode: str) -> dict[str, Any]:
+    """Summarize mode."""
     entries = [item.get(mode, {}) for item in records if isinstance(item.get(mode), dict)]
     ok_entries = [item for item in entries if item.get("status") == "ok"]
     error_entries = [item for item in entries if item.get("status") == "error"]
@@ -386,6 +397,7 @@ def summarize_mode(records: list[dict[str, Any]], mode: str) -> dict[str, Any]:
 
 
 def evaluate_go_no_go(*, v2_stats: dict[str, Any], model: str) -> dict[str, Any]:
+    """Evaluate go no go."""
     metrics = v2_stats.get("metrics", {})
     avg_duration = v2_stats.get("average_duration_seconds")
     p95_duration = v2_stats.get("p95_duration_seconds")
@@ -421,6 +433,7 @@ def evaluate_go_no_go(*, v2_stats: dict[str, Any], model: str) -> dict[str, Any]
 
 
 def build_summary_markdown(summary: dict[str, Any]) -> str:
+    """Build summary markdown."""
     lines: list[str] = []
     lines.append("# V1 vs V2 Benchmark Comparison")
     lines.append("")
@@ -469,6 +482,7 @@ def build_summary_markdown(summary: dict[str, Any]) -> str:
 
 
 def is_summa_complete_v1(payload: dict[str, Any]) -> bool:
+    """Return whether summa complete v1."""
     objections = payload.get("objections")
     replies = payload.get("replies")
     return (
@@ -483,6 +497,7 @@ def is_summa_complete_v1(payload: dict[str, Any]) -> bool:
 
 
 def is_summa_complete_text(text: str) -> bool:
+    """Return whether summa complete text."""
     if not isinstance(text, str) or not text.strip():
         return False
     lowered = text.lower()
@@ -499,20 +514,24 @@ def is_summa_complete_text(text: str) -> bool:
 
 
 def has_keyword_relevance(text_blob: str, keywords: list[str]) -> bool:
+    """Has keyword relevance."""
     lowered = text_blob.lower()
     return any(keyword.lower() in lowered for keyword in keywords)
 
 
 def avoids_bad_pattern(text_blob: str, bad_pattern: str) -> bool:
+    """Avoids bad pattern."""
     return bad_pattern.lower() not in text_blob.lower()
 
 
 def _has_nonempty_str(payload: dict[str, Any], key: str) -> bool:
+    """Internal helper to has nonempty str."""
     value = payload.get(key)
     return isinstance(value, str) and bool(value.strip())
 
 
 def _rate(entries: list[dict[str, Any]], metric_key: str) -> float | None:
+    """Internal helper to rate."""
     if not entries:
         return None
     true_count = 0
@@ -524,18 +543,21 @@ def _rate(entries: list[dict[str, Any]], metric_key: str) -> float | None:
 
 
 def _threshold(value: float | None, threshold: float) -> bool | None:
+    """Internal helper to threshold."""
     if value is None:
         return None
     return value >= threshold
 
 
 def _upper_bound(value: float | None, threshold: float) -> bool | None:
+    """Internal helper to upper bound."""
     if value is None:
         return None
     return value <= threshold
 
 
 def _percentile(values: list[float], percentile: float) -> float:
+    """Internal helper to percentile."""
     if not values:
         return 0.0
     if percentile <= 0:
@@ -551,6 +573,7 @@ def _percentile(values: list[float], percentile: float) -> float:
 
 
 def _load_v1_runner() -> Callable[..., SummaResponse]:
+    """Internal helper to load v1 runner."""
     try:
         from .crew import run_summa
     except ModuleNotFoundError as exc:
@@ -564,6 +587,7 @@ def _load_v1_runner() -> Callable[..., SummaResponse]:
 
 
 def _load_v2_runner() -> Callable[..., dict[str, Any]]:
+    """Internal helper to load v2 runner."""
     try:
         from .crew_v2 import run_summa_v2
     except ModuleNotFoundError as exc:

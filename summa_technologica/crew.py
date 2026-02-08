@@ -1,3 +1,5 @@
+"""Core utilities for crew in Summa Technologica."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -18,6 +20,7 @@ class SummaTechnologicaCrew:
 
     @agent
     def problem_formulator(self) -> Agent:
+        """Problem formulator."""
         settings = Settings.from_env()
         return Agent(
             config=self.agents_config["problem_formulator"],
@@ -27,6 +30,7 @@ class SummaTechnologicaCrew:
 
     @agent
     def objection_engineer(self) -> Agent:
+        """Objection engineer."""
         settings = Settings.from_env()
         return Agent(
             config=self.agents_config["objection_engineer"],
@@ -36,6 +40,7 @@ class SummaTechnologicaCrew:
 
     @agent
     def respondeo_author(self) -> Agent:
+        """Respondeo author."""
         settings = Settings.from_env()
         return Agent(
             config=self.agents_config["respondeo_author"],
@@ -45,6 +50,7 @@ class SummaTechnologicaCrew:
 
     @agent
     def scholastic_editor(self) -> Agent:
+        """Scholastic editor."""
         settings = Settings.from_env()
         return Agent(
             config=self.agents_config["scholastic_editor"],
@@ -54,22 +60,27 @@ class SummaTechnologicaCrew:
 
     @task
     def formulate_problem_task(self) -> Task:
+        """Formulate problem task."""
         return Task(config=self.tasks_config["formulate_problem_task"])
 
     @task
     def generate_objections_task(self) -> Task:
+        """Generate objections task."""
         return Task(config=self.tasks_config["generate_objections_task"])
 
     @task
     def draft_summa_task(self) -> Task:
+        """Draft summa task."""
         return Task(config=self.tasks_config["draft_summa_task"])
 
     @task
     def quality_gate_task(self) -> Task:
+        """Quality gate task."""
         return Task(config=self.tasks_config["quality_gate_task"])
 
     @crew
     def crew(self) -> Crew:
+        """Crew."""
         settings = Settings.from_env()
         return Crew(
             agents=self.agents,
@@ -84,6 +95,7 @@ def run_summa(
     domain: str | None = None,
     objective: str | None = None,
 ) -> SummaResponse:
+    """Run summa."""
     cleaned_question = question.strip()
     if not cleaned_question:
         raise ValueError("Question cannot be empty.")
@@ -106,6 +118,7 @@ def run_summa(
 
 
 def _extract_raw_output(output: Any) -> str:
+    """Internal helper to extract raw output."""
     if isinstance(output, str):
         return output
 

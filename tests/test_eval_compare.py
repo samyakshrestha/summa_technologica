@@ -1,3 +1,5 @@
+"""Unit tests for the test eval compare module behavior."""
+
 import unittest
 
 from summa_technologica.eval_compare import (
@@ -10,6 +12,7 @@ from summa_technologica.eval_compare import (
 
 class EvalCompareHelperTests(unittest.TestCase):
     def test_summa_complete_text(self) -> None:
+        """Verify that summa complete text."""
         text = (
             "Question: Q\n\n"
             "Objections:\n1. A\n2. B\n3. C\n\n"
@@ -23,6 +26,7 @@ class EvalCompareHelperTests(unittest.TestCase):
         self.assertTrue(is_summa_complete_text(text))
 
     def test_summarize_mode_v2(self) -> None:
+        """Verify that summarize mode v2."""
         records = [
             {
                 "v2": {
@@ -60,6 +64,7 @@ class EvalCompareHelperTests(unittest.TestCase):
         self.assertEqual(summary["metrics"]["summa_complete_rate"], 0.5)
 
     def test_evaluate_go_no_go(self) -> None:
+        """Verify that evaluate go no go."""
         v2_stats = {
             "average_duration_seconds": 120.0,
             "p95_duration_seconds": 200.0,
@@ -74,6 +79,7 @@ class EvalCompareHelperTests(unittest.TestCase):
         self.assertEqual(decision["recommendation"], "GO")
 
     def test_evaluate_v2_metrics_schema_error(self) -> None:
+        """Verify that evaluate v2 metrics schema error."""
         payload = {
             "question": "Q",
             "domain": "physics",
