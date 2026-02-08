@@ -7,6 +7,7 @@ from urllib.error import URLError
 
 from summa_technologica.semantic_scholar import (
     SemanticScholarPaper,
+    build_expanded_queries,
     build_dual_queries,
     retrieve_grounded_papers,
     search_semantic_scholar,
@@ -42,6 +43,21 @@ class SemanticScholarQueryTests(unittest.TestCase):
         """Verify that build dual queries dedupes."""
         queries = build_dual_queries("q1", "q1")
         self.assertEqual(queries, ["q1"])
+
+    def test_build_expanded_queries_uses_problem_memo(self) -> None:
+        """Verify expanded queries add thesis and assumption hints."""
+        queries = build_expanded_queries(
+            "base question",
+            "refined query",
+            {
+                "thesis_directions": ["direction one", "direction two"],
+                "assumptions": ["assumption one", "assumption two"],
+            },
+            max_queries=5,
+        )
+        self.assertGreaterEqual(len(queries), 3)
+        self.assertLessEqual(len(queries), 5)
+        self.assertIn("base question", queries[0])
 
 
 class SemanticScholarSearchTests(unittest.TestCase):
@@ -136,6 +152,73 @@ class SemanticScholarSearchTests(unittest.TestCase):
         self.assertEqual(result.status, "no_grounded_citations_found")
         self.assertTrue(result.errors)
 
+    @patch("summa_technologica.semantic_scholar.urlopen")
+    def test_retrieve_ranks_abstract_quality_before_citation_count(self, mock_urlopen) -> None:
+        """Verify ranking favors rich abstracts while keeping sparse papers."""
+        mock_urlopen.return_value = _FakeResponse(
+            {
+                "data": [
+                    {
+                        "paperId": "p1",
+                        "title": "Sparse Abstract High Citations",
+                        "authors": [{"name": "A"}],
+                        "year": 2020,
+                        "abstract": "",
+                        "citationCount": 1000,
+                    },
+                    {
+                        "paperId": "p2",
+                        "title": "Rich Abstract Mid Citations",
+                        "authors": [{"name": "B"}],
+                        "year": 2023,
+                        "abstract": "This abstract is deliberately long enough to pass the quality threshold for ranking.",
+                        "citationCount": 100,
+                    },
+                    {
+                        "paperId": "p3",
+                        "title": "Rich Abstract Low Citations",
+                        "authors": [{"name": "C"}],
+                        "year": 2022,
+                        "abstract": "This abstract is also long enough to count as high-information evidence in ranking.",
+                        "citationCount": 10,
+                    },
+                ]
+            }
+        )
+
+        result = retrieve_grounded_papers(
+            question="query one",
+            refined_query=None,
+            base_url="https://api.semanticscholar.org",
+            api_key=None,
+            per_query_limit=10,
+            timeout_seconds=1.0,
+        )
+        self.assertEqual(result.status, "ok")
+        self.assertEqual(len(result.papers), 3)
+        self.assertEqual(result.papers[0].paper_id, "p2")
+        self.assertEqual(result.papers[1].paper_id, "p3")
+        self.assertEqual(result.papers[2].paper_id, "p1")
+
+    @patch("summa_technologica.semantic_scholar.urlopen")
+    def test_retrieve_returns_expanded_query_list(self, mock_urlopen) -> None:
+        """Verify retrieval reports expanded queries when problem memo is present."""
+        mock_urlopen.return_value = _FakeResponse({"data": []})
+        result = retrieve_grounded_papers(
+            question="base question",
+            refined_query="refined query",
+            problem_memo={
+                "thesis_directions": ["direction one", "direction two"],
+                "assumptions": ["assumption one", "assumption two"],
+            },
+            base_url="https://api.semanticscholar.org",
+            api_key=None,
+            per_query_limit=10,
+            timeout_seconds=1.0,
+        )
+        self.assertLessEqual(len(result.queries), 5)
+        self.assertGreaterEqual(len(result.queries), 3)
+
 
 class CitationGroundingTests(unittest.TestCase):
     def test_validate_citations_against_papers(self) -> None:
@@ -193,4 +276,3 @@ class CitationGroundingTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

@@ -28,6 +28,7 @@ def _as_bool(value: str, default: bool = False) -> bool:
 @dataclass(frozen=True)
 class Settings:
     model: str
+    creative_model: str
     verbose: bool
     default_domain: str
     default_objective: str
@@ -37,7 +38,7 @@ class Settings:
 
     @staticmethod
     def from_env() -> "Settings":
-        """From env."""
+        """Load all runtime settings from environment variables."""
         model = (
             os.getenv("SUMMA_MODEL")
             or os.getenv("MODEL")
@@ -45,8 +46,10 @@ class Settings:
             or os.getenv("OPENAI_MODEL")
             or "gpt-4o-mini"
         )
+        creative_model = os.getenv("CREATIVE_MODEL") or model
         return Settings(
             model=model,
+            creative_model=creative_model,
             verbose=_as_bool(os.getenv("SUMMA_VERBOSE", "false")),
             default_domain=os.getenv("SUMMA_DEFAULT_DOMAIN", "general science"),
             default_objective=os.getenv(

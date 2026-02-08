@@ -62,14 +62,16 @@ def _run_json_stage(
     settings: Settings,
     inputs: dict[str, str],
     retry_error: str | None,
+    model_override: str | None = None,
 ) -> dict[str, Any]:
-    """Internal helper to run json stage."""
+    """Run one stage and parse the model output as a JSON object."""
     raw = _run_agent_task(
         agent_cfg=agent_cfg,
         task_cfg=task_cfg,
         settings=settings,
         inputs=inputs,
         retry_error=retry_error,
+        model_override=model_override,
     )
     return _parse_json_object(raw)
 
@@ -81,6 +83,7 @@ def _run_summa_composer_stage(
     settings: Settings,
     inputs: dict[str, str],
     retry_error: str | None,
+    model_override: str | None = None,
 ) -> dict[str, Any]:
     """Run the SummaComposer with tolerance for non-JSON output.
 
@@ -94,6 +97,7 @@ def _run_summa_composer_stage(
         settings=settings,
         inputs=inputs,
         retry_error=retry_error,
+        model_override=model_override,
     )
     try:
         parsed = _parse_json_object(raw)
@@ -118,8 +122,9 @@ def _run_agent_task(
     settings: Settings,
     inputs: dict[str, str],
     retry_error: str | None,
+    model_override: str | None = None,
 ) -> str:
-    """Internal helper to run agent task."""
+    """Execute a CrewAI task and return raw text from the final stage output."""
     try:
         from crewai import Agent, Crew, Process, Task
     except ModuleNotFoundError as exc:
@@ -141,7 +146,8 @@ def _run_agent_task(
             "You must return strict JSON only, parseable by json.loads."
         )
 
-    agent = Agent(config=agent_cfg, llm=settings.model, verbose=settings.verbose)
+    llm_model = model_override or settings.model
+    agent = Agent(config=agent_cfg, llm=llm_model, verbose=settings.verbose)
     task = Task(
         description=description,
         expected_output=expected_output,

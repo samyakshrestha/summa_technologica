@@ -103,6 +103,7 @@ def run_summa_v2(
         retrieval_result = retrieve_grounded_papers(
             question=cleaned_question,
             refined_query=problem_memo.get("refined_query"),
+            problem_memo=problem_memo,
             base_url=settings.semantic_scholar_base_url,
             api_key=settings.semantic_scholar_api_key,
             per_query_limit=10,
@@ -132,6 +133,7 @@ def run_summa_v2(
                 agent_cfg=agents_cfg["hypothesis_generator"],
                 task_cfg=tasks_cfg["hypothesis_generator_task"],
                 settings=settings,
+                model_override=settings.creative_model,
                 inputs={
                     "question": cleaned_question,
                     "domain": cleaned_domain,
@@ -168,6 +170,7 @@ def run_summa_v2(
                 agent_cfg=agents_cfg["critic"],
                 task_cfg=tasks_cfg["critic_task"],
                 settings=settings,
+                model_override=settings.creative_model,
                 inputs={
                     "question": cleaned_question,
                     "domain": cleaned_domain,
@@ -229,6 +232,7 @@ def run_summa_v2(
                 agent_cfg=agents_cfg["summa_composer"],
                 task_cfg=tasks_cfg["summa_composer_task"],
                 settings=settings,
+                model_override=settings.creative_model,
                 inputs={
                     "question": cleaned_question,
                     "domain": cleaned_domain,
@@ -265,6 +269,7 @@ def run_summa_v2(
                 agent_cfg=agents_cfg["summa_composer"],
                 task_cfg=tasks_cfg["summa_composer_task"],
                 settings=settings,
+                model_override=settings.creative_model,
                 inputs={
                     "question": cleaned_question,
                     "domain": cleaned_domain,
@@ -328,6 +333,7 @@ def _regenerate_for_diversity(
             agent_cfg=agents_cfg["hypothesis_generator"],
             task_cfg=tasks_cfg["hypothesis_generator_task"],
             settings=settings,
+            model_override=settings.creative_model,
             inputs={
                 "question": question,
                 "domain": domain,

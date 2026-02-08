@@ -86,13 +86,41 @@ class RetrievalResult:
 
 
 def build_dual_queries(question: str, refined_query: str | None = None) -> list[str]:
-    """Build dual queries."""
+    """Build the baseline two-query set from the raw and refined questions."""
     candidates = [question.strip(), (refined_query or "").strip()]
     queries: list[str] = []
     for query in candidates:
         if query and query not in queries:
             queries.append(query)
     return queries
+
+
+def build_expanded_queries(
+    question: str,
+    refined_query: str | None = None,
+    problem_memo: dict[str, Any] | None = None,
+    *,
+    max_queries: int = 5,
+) -> list[str]:
+    """Build up to max_queries using question, refined query, and memo hints."""
+    queries = build_dual_queries(question, refined_query)
+    if not isinstance(problem_memo, dict):
+        return queries[:max_queries]
+
+    memo_candidates: list[str] = []
+    thesis_directions = _extract_text_list(problem_memo.get("thesis_directions"), limit=2)
+    assumptions = _extract_text_list(problem_memo.get("assumptions"), limit=2)
+    memo_candidates.extend(thesis_directions)
+    memo_candidates.extend(assumptions)
+
+    base_query = question.strip() or (refined_query or "").strip()
+    for hint in memo_candidates:
+        if len(queries) >= max_queries:
+            break
+        expanded = _compose_query(base_query, hint)
+        if expanded and expanded not in queries:
+            queries.append(expanded)
+    return queries[:max_queries]
 
 
 def search_semantic_scholar(
@@ -145,13 +173,19 @@ def retrieve_grounded_papers(
     *,
     question: str,
     refined_query: str | None,
+    problem_memo: dict[str, Any] | None = None,
     base_url: str,
     api_key: str | None = None,
     per_query_limit: int = 10,
     timeout_seconds: float = 20.0,
 ) -> RetrievalResult:
-    """Retrieve grounded papers."""
-    queries = build_dual_queries(question, refined_query)
+    """Retrieve, deduplicate, and quality-rank papers for grounding."""
+    queries = build_expanded_queries(
+        question,
+        refined_query,
+        problem_memo,
+        max_queries=5,
+    )
     if not queries:
         return RetrievalResult(
             status="no_grounded_citations_found",
@@ -182,7 +216,10 @@ def retrieve_grounded_papers(
             if dedupe_key not in merged:
                 merged[dedupe_key] = paper
 
-    papers = list(merged.values())
+    papers = sorted(
+        merged.values(),
+        key=_paper_rank_key,
+    )
     if not papers:
         message = "no grounded citations found"
         if errors:
@@ -254,7 +291,7 @@ def _build_headers(api_key: str | None) -> dict[str, str]:
 
 
 def _parse_paper(payload: dict[str, Any], source_query: str) -> SemanticScholarPaper | None:
-    """Internal helper to parse paper."""
+    """Parse one Semantic Scholar API record into a typed paper object."""
     if not isinstance(payload, dict):
         return None
 
@@ -300,7 +337,7 @@ def _parse_paper(payload: dict[str, Any], source_query: str) -> SemanticScholarP
 
 
 def _dedupe_key(paper: SemanticScholarPaper) -> str:
-    """Internal helper to dedupe key."""
+    """Build a stable dedupe key from paper ID, DOI, or fallback title+year."""
     if paper.paper_id:
         return f"paper_id:{paper.paper_id}"
     if paper.doi:
@@ -309,13 +346,50 @@ def _dedupe_key(paper: SemanticScholarPaper) -> str:
 
 
 def _normalize_doi(value: str | None) -> str:
-    """Internal helper to normalize doi."""
+    """Normalize DOI strings so equivalent DOI formats compare equal."""
     if not value:
         return ""
     normalized = value.strip().lower()
     if normalized.startswith("doi:"):
         normalized = normalized[4:].strip()
     return normalized
+
+
+def _extract_text_list(value: Any, *, limit: int) -> list[str]:
+    """Return up to limit non-empty strings from a model-produced list field."""
+    if not isinstance(value, list):
+        return []
+    items: list[str] = []
+    for entry in value:
+        if len(items) >= limit:
+            break
+        if isinstance(entry, str) and entry.strip():
+            items.append(entry.strip())
+    return items
+
+
+def _compose_query(base_query: str, hint: str, *, max_length: int = 220) -> str:
+    """Build one expanded query while keeping query length bounded."""
+    combined = f"{base_query} {hint}".strip()
+    if len(combined) <= max_length:
+        return combined
+    return combined[: max_length - 1].rstrip() + "…"
+
+
+def _has_quality_abstract(paper: SemanticScholarPaper) -> bool:
+    """Treat abstracts with at least 50 chars as high-information evidence."""
+    return len(paper.abstract.strip()) >= 50
+
+
+def _paper_rank_key(paper: SemanticScholarPaper) -> tuple[int, int, int, str]:
+    """Rank papers by abstract quality, then citations, then recency."""
+    citation_count = paper.citation_count if isinstance(paper.citation_count, int) else -1
+    return (
+        -int(_has_quality_abstract(paper)),
+        -citation_count,
+        -paper.year,
+        paper.title.lower(),
+    )
 
 
 def _read_http_error_body(exc: HTTPError) -> str:
@@ -328,4 +402,3 @@ def _read_http_error_body(exc: HTTPError) -> str:
         return "<empty>"
     text = raw.decode("utf-8", errors="replace").strip()
     return text or "<empty>"
-
