@@ -1,4 +1,15 @@
-"""Core utilities for semantic scholar in Summa Technologica."""
+"""Semantic Scholar API client — fetches real academic papers for citation grounding.
+
+This file is the pipeline's connection to the outside world. It:
+  - Builds search queries from the user's question and the problem memo
+  - Calls the Semantic Scholar REST API to find relevant papers
+  - Parses the API response into SemanticScholarPaper dataclasses
+  - Deduplicates papers across multiple queries
+  - Returns a RetrievalResult with all found papers (or an error message)
+
+The papers returned here become the "grounded citations" that hypotheses must
+reference. If a hypothesis cites a paper not in this list, it gets rejected.
+"""
 
 from __future__ import annotations
 

@@ -1,4 +1,17 @@
-"""Core utilities for v2 contracts in Summa Technologica."""
+"""Schema validation — ensures the final pipeline output is well-formed.
+
+Before the pipeline returns its result, this file checks that the output
+matches the JSON schema (schemas/hypothesis_schema.json). It validates:
+  - Required fields exist (question, domain, hypotheses, ranked_hypothesis_ids)
+  - Hypothesis IDs are unique and match the ranking list
+  - Each hypothesis has exactly 3 objections and 3 replies (numbered 1,2,3)
+  - Pairwise comparisons reference valid hypothesis IDs
+  - Score formula is consistent (35% novelty + 30% plausibility + 35% testability)
+  - Citations are grounded in the Semantic Scholar retrieval results
+
+If validation fails, the pipeline either retries the Summa Composer or
+returns a partial-failure payload with diagnostic info.
+"""
 
 from __future__ import annotations
 

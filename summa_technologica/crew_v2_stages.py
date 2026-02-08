@@ -1,4 +1,15 @@
-"""Core utilities for crew v2 stages in Summa Technologica."""
+"""LLM execution layer — sends prompts to CrewAI and parses the responses.
+
+This file handles the "how" of talking to the LLM:
+  - Loading YAML config files (agent roles, task prompts)
+  - Rendering template variables into prompts (e.g. {question} → actual question)
+  - Creating a CrewAI Agent + Task + Crew and calling crew.kickoff()
+  - Parsing the raw LLM output into a JSON dict
+  - Retrying once if the first attempt fails
+
+The main orchestrator (crew_v2.py) calls functions here for each pipeline stage.
+This file never decides WHAT to do — it just executes what crew_v2.py asks for.
+"""
 
 from __future__ import annotations
 

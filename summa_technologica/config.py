@@ -1,4 +1,9 @@
-"""Core utilities for config in Summa Technologica."""
+"""Settings — reads configuration from environment variables and .env file.
+
+All pipeline settings (which LLM model to use, API keys, default domain, etc.)
+are loaded here. The Settings dataclass is created once at the start of each
+pipeline run and passed to every stage.
+"""
 
 from dataclasses import dataclass
 import os

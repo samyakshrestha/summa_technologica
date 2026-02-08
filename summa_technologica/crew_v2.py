@@ -1,4 +1,26 @@
-"""Core utilities for crew v2 in Summa Technologica."""
+"""Main orchestrator for the V2 hypothesis-generation pipeline.
+
+This is the entry point. It runs 7 stages in sequence:
+
+  1. Problem Framer   → converts the user's question into a structured research memo
+  2. Paper Retrieval  → searches Semantic Scholar for relevant academic papers
+  3. Literature Scout → summarizes the retrieved papers into an evidence memo
+  4. Hypothesis Gen   → produces 3-5 distinct hypotheses grounded in that evidence
+  5. Critic           → stress-tests hypotheses, adds objections and replies
+  6. Ranker           → compares hypotheses pairwise on novelty/plausibility/testability
+  7. Summa Composer   → renders the top hypothesis into Summa Theologica format
+
+Each stage is an LLM call managed by CrewAI. If a stage fails, it retries once.
+If the retry also fails, the pipeline returns a partial-failure payload instead
+of crashing.
+
+Files this module depends on:
+  - config.py            → reads settings (model name, API keys) from .env
+  - crew_v2_stages.py    → handles the actual LLM calls (CrewAI Agent/Task/Crew)
+  - crew_v2_postprocess.py → cleans up LLM output (normalize JSON, rank, render)
+  - semantic_scholar.py  → fetches papers from the Semantic Scholar API
+  - v2_contracts.py      → validates the final output against a JSON schema
+"""
 
 from __future__ import annotations
 
@@ -40,7 +62,7 @@ def run_summa_v2(
     objective: str | None = None,
     top: int = 1,
 ) -> dict[str, Any]:
-    """Run summa v2."""
+    """Run the full V2 pipeline: question in, Summa-formatted hypothesis out."""
     cleaned_question = question.strip()
     if not cleaned_question:
         raise ValueError("Question cannot be empty.")

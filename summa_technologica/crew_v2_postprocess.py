@@ -1,4 +1,18 @@
-"""Core utilities for crew v2 postprocess in Summa Technologica."""
+"""Post-processing — cleans up raw LLM output into structured, validated data.
+
+After the LLM produces JSON, the output is often messy: missing fields,
+duplicate IDs, ungrounded citations, missing objections. This file fixes
+all of that. Key responsibilities:
+
+  - Normalize hypotheses: assign IDs, fill missing fields with fallbacks
+  - Sanitize citations: keep only papers that exist in Semantic Scholar results
+  - Ensure objections/replies: guarantee exactly 3 of each per hypothesis
+  - Pairwise ranking: tally wins from the Ranker's comparisons, compute scores
+  - Summa rendering: validate the LLM's rendering or build one from scratch
+
+The main orchestrator (crew_v2.py) calls these functions after each LLM stage
+to clean up the output before passing it to the next stage.
+"""
 
 from __future__ import annotations
 
