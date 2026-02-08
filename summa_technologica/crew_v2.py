@@ -195,7 +195,7 @@ def run_summa_v2(
             hypotheses=normalized_hypotheses,
             ranker_output=ranker_output,
         )
-        normalized_hypotheses = hypotheses_with_scores
+        normalized_hypotheses = _hydrate_summa_triplets(hypotheses_with_scores)
 
         composer_output = _run_stage_with_retry(
             stage_name="summa_composer",
@@ -436,7 +436,10 @@ def _run_agent_task(
         process=Process.sequential,
         verbose=settings.verbose,
     )
-    output = crew.kickoff(inputs=inputs)
+    # Inputs are pre-rendered into description/expected_output above.
+    # Passing inputs again can trigger a second formatting pass in CrewAI and
+    # break on literal braces used in scientific notation or JSON examples.
+    output = crew.kickoff()
     return _extract_raw_output(output)
 
 
@@ -498,6 +501,10 @@ def _normalize_generated_hypotheses(
         seen_ids.add(hypothesis_id)
         fallback_counter += 1
 
+        citations = _sanitize_citations(item.get("citations"), grounded_papers)
+        if not citations:
+            citations = _fallback_grounded_citations(grounded_papers)
+
         hypothesis = {
             "id": hypothesis_id,
             "title": _as_nonempty_text(item.get("title"), f"Hypothesis {hypothesis_id}"),
@@ -522,7 +529,9 @@ def _normalize_generated_hypotheses(
                 item.get("minimal_experiments"),
                 fallback="Experiment plan not provided.",
             ),
-            "citations": _sanitize_citations(item.get("citations"), grounded_papers),
+            "citations": citations,
+            "objections": _ensure_objections(item.get("objections")),
+            "replies": _ensure_replies(item.get("replies")),
         }
         normalized.append(hypothesis)
 
@@ -548,6 +557,9 @@ def _normalize_critic_hypotheses(
             if not hypothesis_id or hypothesis_id in seen_ids:
                 continue
             seen_ids.add(hypothesis_id)
+            citations = _sanitize_citations(item.get("citations"), grounded_papers)
+            if not citations:
+                citations = _fallback_grounded_citations(grounded_papers)
             hypotheses.append(
                 {
                     "id": hypothesis_id,
@@ -573,7 +585,7 @@ def _normalize_critic_hypotheses(
                         item.get("minimal_experiments"),
                         fallback="Experiment plan not provided.",
                     ),
-                    "citations": _sanitize_citations(item.get("citations"), grounded_papers),
+                    "citations": citations,
                     "objections": _ensure_objections(item.get("objections")),
                     "replies": _ensure_replies(item.get("replies")),
                 }
@@ -707,6 +719,18 @@ def _top_hypotheses(
     return [by_id[hypothesis_id] for hypothesis_id in top_ids if hypothesis_id in by_id]
 
 
+def _hydrate_summa_triplets(hypotheses: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    hydrated: list[dict[str, Any]] = []
+    for item in hypotheses:
+        if not isinstance(item, dict):
+            continue
+        hypothesis = dict(item)
+        hypothesis["objections"] = _ensure_objections(hypothesis.get("objections"))
+        hypothesis["replies"] = _ensure_replies(hypothesis.get("replies"))
+        hydrated.append(hypothesis)
+    return hydrated
+
+
 def _sanitize_citations(
     citations: Any,
     grounded_papers: list[SemanticScholarPaper],
@@ -757,6 +781,45 @@ def _sanitize_citations(
         sanitized.append(payload)
 
     return sanitized
+
+
+def _fallback_grounded_citations(
+    grounded_papers: list[SemanticScholarPaper],
+    *,
+    limit: int = 3,
+) -> list[dict[str, Any]]:
+    fallback: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for paper in grounded_papers:
+        if not isinstance(paper, SemanticScholarPaper):
+            continue
+        if not paper.title or not isinstance(paper.year, int):
+            continue
+        if paper.year < 1800 or paper.year > 2100:
+            continue
+        if not paper.authors:
+            continue
+        if not paper.paper_id and not paper.doi:
+            continue
+
+        key = paper.paper_id or f"doi:{_normalize_doi(paper.doi)}"
+        if key in seen:
+            continue
+        seen.add(key)
+
+        citation = {
+            "title": paper.title.strip(),
+            "authors": [str(author).strip() for author in paper.authors if str(author).strip()],
+            "year": int(paper.year),
+        }
+        if paper.paper_id:
+            citation["paper_id"] = paper.paper_id.strip()
+        if paper.doi:
+            citation["doi"] = paper.doi.strip()
+        fallback.append(citation)
+        if len(fallback) >= max(1, limit):
+            break
+    return fallback
 
 
 def _ensure_objections(raw: Any) -> list[dict[str, Any]]:

@@ -100,6 +100,30 @@ Outputs are written under `eval/results/v1/<timestamp>/` with:
 - `summary.json`
 - `summary.md`
 
+## V1 vs V2 comparison (WP6)
+
+Run full benchmark comparison and generate a go/no-go report:
+
+```bash
+summa-benchmark-compare --run-label v2_final_check
+```
+
+Useful options:
+
+```bash
+summa-benchmark-compare --dry-run
+summa-benchmark-compare --domain physics --limit 3
+summa-benchmark-compare --top 3 --run-label top3_eval
+```
+
+Outputs are written under `eval/results/compare/<timestamp>/`:
+
+- `manifest.json`
+- per-case JSON files
+- `summary.json`
+- `summary.md`
+- `go_no_go.json`
+
 ## Semantic Scholar retrieval check (WP3)
 
 Test dual-query retrieval independently:

@@ -3,6 +3,7 @@ import unittest
 from summa_technologica.crew_v2 import (
     _apply_pairwise_ranking,
     _ensure_summa_rendering,
+    _hydrate_summa_triplets,
     _normalize_generated_hypotheses,
     _render_template,
 )
@@ -164,6 +165,72 @@ class CrewV2HelperTests(unittest.TestCase):
         self.assertEqual(len(normalized), 1)
         self.assertEqual(len(normalized[0]["citations"]), 1)
         self.assertEqual(normalized[0]["citations"][0]["paper_id"], "p1")
+        self.assertEqual(
+            [item["number"] for item in normalized[0]["objections"]],
+            [1, 2, 3],
+        )
+        self.assertEqual(
+            [item["objection_number"] for item in normalized[0]["replies"]],
+            [1, 2, 3],
+        )
+
+    def test_normalize_generated_hypotheses_falls_back_to_grounded_citations(self) -> None:
+        grounded = [
+            SemanticScholarPaper(
+                paper_id="p1",
+                title="Paper One",
+                authors=["A1"],
+                year=2020,
+                abstract="",
+                citation_count=10,
+                doi=None,
+                url=None,
+                source_query="q",
+            ),
+            SemanticScholarPaper(
+                paper_id="p2",
+                title="Paper Two",
+                authors=["A2"],
+                year=2021,
+                abstract="",
+                citation_count=9,
+                doi=None,
+                url=None,
+                source_query="q",
+            ),
+            SemanticScholarPaper(
+                paper_id="p3",
+                title="Paper Three",
+                authors=["A3"],
+                year=2022,
+                abstract="",
+                citation_count=8,
+                doi=None,
+                url=None,
+                source_query="q",
+            ),
+        ]
+        payload = {
+            "hypotheses": [
+                {
+                    "id": "h1",
+                    "title": "title",
+                    "statement": "statement",
+                    "novelty_rationale": "n",
+                    "plausibility_rationale": "p",
+                    "testability_rationale": "t",
+                    "falsifiable_predictions": ["f"],
+                    "minimal_experiments": ["m"],
+                    "citations": [],
+                }
+            ]
+        }
+        normalized = _normalize_generated_hypotheses(payload, grounded)
+        self.assertEqual(len(normalized[0]["citations"]), 3)
+        self.assertEqual(
+            [item["paper_id"] for item in normalized[0]["citations"]],
+            ["p1", "p2", "p3"],
+        )
 
     def test_ensure_summa_rendering_builds_fallback_top3(self) -> None:
         hypotheses = [
@@ -202,6 +269,26 @@ class CrewV2HelperTests(unittest.TestCase):
         self.assertIn("\n---\n", rendered)
         # rank #1 should use rank #2 as contrary source
         self.assertIn("Statement 2", rendered)
+
+    def test_hydrate_summa_triplets_adds_missing_fields(self) -> None:
+        hydrated = _hydrate_summa_triplets(
+            [
+                {
+                    "id": "h1",
+                    "title": "H1",
+                    "statement": "S1",
+                }
+            ]
+        )
+        self.assertEqual(len(hydrated), 1)
+        self.assertEqual(
+            [item["number"] for item in hydrated[0]["objections"]],
+            [1, 2, 3],
+        )
+        self.assertEqual(
+            [item["objection_number"] for item in hydrated[0]["replies"]],
+            [1, 2, 3],
+        )
 
 
 if __name__ == "__main__":

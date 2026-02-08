@@ -7,6 +7,7 @@ summa_technologica/cli.py
 summa_technologica/config.py
 summa_technologica/crew.py
 summa_technologica/crew_v2.py
+summa_technologica/eval_compare.py
 summa_technologica/eval_v1.py
 summa_technologica/formatter.py
 summa_technologica/formatter_v2.py
@@ -25,6 +26,7 @@ summa_technologica/config/agents_v2.yaml
 summa_technologica/config/tasks.yaml
 summa_technologica/config/tasks_v2.yaml
 tests/test_crew_v2_helpers.py
+tests/test_eval_compare.py
 tests/test_models.py
 tests/test_semantic_scholar.py
 tests/test_v2_contracts.py

@@ -1,4 +1,5 @@
 [console_scripts]
+summa-benchmark-compare = summa_technologica.eval_compare:main
 summa-semantic-search = summa_technologica.semantic_scholar_cli:main
 summa-technologica = summa_technologica.cli:main
 summa-v1-benchmark = summa_technologica.eval_v1:main
