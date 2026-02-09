@@ -159,14 +159,44 @@ summa_composer_task:
     - summa_rendering: string
 
     Rendering rules:
-    - For each rendered block, include:
-      Question, Objections (1..3), On the contrary, I answer that, Replies to objections.
-    - If top_count is 1:
-      render one block for rank #1.
-      on_the_contrary must reflect rank #2 core claim, or strongest objection if no #2.
-    - If top_count is 3:
-      render up to three blocks (based on available hypotheses), separated by a line containing ---
+    - For each rendered block, use this structure in order:
+      Question, Objection 1, Objection 2, Objection 3,
+      On the contrary, I answer that, Reply to Objection 1, Reply to Objection 2, Reply to Objection 3.
+
+    Section-by-section requirements:
+
+    QUESTION: State the question as "Whether [hypothesis title in question form]."
+
+    OBJECTIONS (1-3): Each objection must be 2-4 sentences presenting a genuine
+    weakness, empirical gap, or logical flaw. Start each with "Objection N."
+    Use the objections from the hypothesis data.
+
+    ON THE CONTRARY: This section must cite evidence that SUPPORTS the hypothesis.
+    Reference a specific grounded paper or established finding from the citations.
+    Format: "On the contrary, [Author] ([Year]) demonstrated that [finding],
+    which supports the claim that [brief link to hypothesis]."
+    Do NOT paste another hypothesis's claim here. Do NOT be vague.
+
+    I ANSWER THAT: This is the core section. Write 2-3 substantive paragraphs:
+    - Paragraph 1: Explain the causal mechanism — what causes what, acting on
+      what substrate, and why this mechanism is plausible.
+    - Paragraph 2: Connect to evidence — which papers support this, what do
+      they show, and how does the hypothesis go beyond existing work.
+    - Paragraph 3: State the testable prediction — what specific experiment
+      would confirm or falsify this, and what measurable outcome to expect.
+    Use the hypothesis's mechanism_cause, mechanism_substrate, citations, and
+    falsifiable_predictions to construct these paragraphs.
+
+    REPLIES TO OBJECTIONS (1-3): Each reply must directly address the
+    corresponding objection with a specific counter-argument or evidence.
+    Start each with "Reply to Objection N." Write 2-3 sentences, not
+    generic dismissals.
+
+    Additional rules:
+    - If top_count is 1: render one block for rank #1.
+    - If top_count is 3: render up to three blocks, separated by a line containing ---
     - Objections and replies must align by number.
     - Do not output JSON other than {"summa_rendering": "..."}.
   expected_output: >
-    Valid JSON containing a complete Summa rendering string for top hypothesis/hypotheses.
+    Valid JSON containing a complete Summa rendering string with substantive
+    On-the-contrary citations and multi-paragraph I-answer-that explanations.
