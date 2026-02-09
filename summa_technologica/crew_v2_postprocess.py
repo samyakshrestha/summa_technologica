@@ -180,7 +180,12 @@ def _normalize_critic_hypotheses(
 
 
 def _check_novelty_diversity(hypotheses: list[dict[str, Any]]) -> list[str]:
-    """Return diversity issues when hypotheses reuse the same mechanism cause."""
+    """Flag only actual duplicate mechanism_cause values across hypotheses.
+
+    Missing mechanism_cause is NOT a diversity issue — it just means the LLM
+    didn't produce that field yet.  Only flag when two hypotheses share the
+    exact same cause, which indicates the LLM is repeating itself.
+    """
     issues: list[str] = []
     seen_causes: dict[str, str] = {}
 
@@ -189,8 +194,9 @@ def _check_novelty_diversity(hypotheses: list[dict[str, Any]]) -> list[str]:
             continue
         hypothesis_id = _as_nonempty_text(hypothesis.get("id"), "unknown")
         cause = _as_nonempty_text(hypothesis.get("mechanism_cause"), "").strip()
+        # Skip hypotheses where the LLM didn't produce a mechanism_cause.
+        # This is a completeness gap, not a diversity problem.
         if not cause or cause.lower() == "mechanism cause not provided.":
-            issues.append(f"{hypothesis_id}: missing mechanism_cause")
             continue
 
         normalized_cause = re.sub(r"\s+", " ", cause.lower()).strip()

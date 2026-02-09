@@ -255,6 +255,17 @@ class CrewV2HelperTests(unittest.TestCase):
         self.assertEqual(len(issues), 1)
         self.assertIn("duplicates", issues[0])
 
+    def test_check_novelty_diversity_ignores_missing_mechanism_cause(self) -> None:
+        """Missing mechanism_cause is not a diversity issue — just incomplete data."""
+        issues = _check_novelty_diversity(
+            [
+                {"id": "h1", "mechanism_cause": "Mechanism cause not provided."},
+                {"id": "h2", "mechanism_cause": "Some real cause"},
+                {"id": "h3"},
+            ]
+        )
+        self.assertEqual(issues, [])
+
     def test_validate_prediction_specificity_flags_vague_predictions(self) -> None:
         """Verify specificity check separates vague and specific predictions."""
         report = _validate_prediction_specificity(
