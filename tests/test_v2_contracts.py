@@ -30,6 +30,10 @@ def _valid_payload() -> dict:
                 "id": "h1",
                 "title": "Topological syndrome compression",
                 "statement": "Map syndrome manifolds onto topological classes.",
+                "mechanism_cause": "Topological compression of syndrome geometry",
+                "mechanism_substrate": "stabilizer syndrome graph",
+                "mechanism_intervention": "decoder objective re-weighting",
+                "mechanism_signal": "logical error-rate slope vs noise",
                 "novelty_rationale": "Connects topological order with syndrome reduction.",
                 "plausibility_rationale": "Consistent with stabilizer formulations.",
                 "testability_rationale": "Can be tested in simulation in under one year.",
@@ -84,6 +88,10 @@ def _valid_payload() -> dict:
                 "id": "h2",
                 "title": "Anyon-informed decoder priors",
                 "statement": "Use anyon-braid priors in decoding objective.",
+                "mechanism_cause": "anyon braid prior regularization",
+                "mechanism_substrate": "decoder posterior over syndromes",
+                "mechanism_intervention": "prior-weight scheduling across rounds",
+                "mechanism_signal": "threshold crossing probability",
                 "novelty_rationale": "Introduces structured prior family.",
                 "plausibility_rationale": "Aligned with known anyon toy models.",
                 "testability_rationale": "Immediate benchmarking possible.",
@@ -136,7 +144,11 @@ def _valid_payload() -> dict:
             }
         ],
         "ranked_hypothesis_ids": ["h1", "h2"],
-        "summa_rendering": "Question: ...\nObjections:\n1. ...\n2. ...\n3. ...\nOn the contrary...\n...\nI answer that...\n...\nReplies to objections:\nReply to Objection 1...\nReply to Objection 2...\nReply to Objection 3..."
+        "summa_rendering": "Question: ...\nObjections:\n1. ...\n2. ...\n3. ...\nOn the contrary...\n...\nI answer that...\n...\nReplies to objections:\nReply to Objection 1...\nReply to Objection 2...\nReply to Objection 3...",
+        "_metadata": {
+            "generated_at_utc": "2026-02-09T00:00:00+00:00",
+            "models": {"default_model": "gpt-4o-mini", "creative_model": "gpt-4o"},
+        },
     }
 
 

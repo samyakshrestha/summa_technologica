@@ -38,6 +38,10 @@
     "summa_rendering": {
       "type": "string",
       "minLength": 1
+    },
+    "_metadata": {
+      "type": "object",
+      "additionalProperties": true
     }
   },
   "$defs": {
@@ -233,6 +237,22 @@
           "type": "string",
           "minLength": 1
         },
+        "mechanism_cause": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mechanism_substrate": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mechanism_intervention": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mechanism_signal": {
+          "type": "string",
+          "minLength": 1
+        },
         "novelty_rationale": {
           "type": "string",
           "minLength": 1
@@ -293,4 +313,3 @@
     }
   }
 }
-

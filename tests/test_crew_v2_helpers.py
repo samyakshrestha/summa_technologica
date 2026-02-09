@@ -4,10 +4,12 @@ import unittest
 
 from summa_technologica.crew_v2 import (
     _apply_pairwise_ranking,
+    _check_novelty_diversity,
     _ensure_summa_rendering,
     _hydrate_summa_triplets,
     _normalize_generated_hypotheses,
     _render_template,
+    _validate_prediction_specificity,
 )
 from summa_technologica.semantic_scholar import SemanticScholarPaper
 
@@ -179,6 +181,8 @@ class CrewV2HelperTests(unittest.TestCase):
             [item["objection_number"] for item in normalized[0]["replies"]],
             [1, 2, 3],
         )
+        self.assertIn("mechanism_cause", normalized[0])
+        self.assertIn("mechanism_signal", normalized[0])
 
     def test_normalize_generated_hypotheses_falls_back_to_grounded_citations(self) -> None:
         """Verify that normalize generated hypotheses falls back to grounded citations."""
@@ -238,6 +242,30 @@ class CrewV2HelperTests(unittest.TestCase):
             [item["paper_id"] for item in normalized[0]["citations"]],
             ["p1", "p2", "p3"],
         )
+
+    def test_check_novelty_diversity_detects_duplicate_mechanisms(self) -> None:
+        """Verify diversity check flags repeated mechanism causes."""
+        issues = _check_novelty_diversity(
+            [
+                {"id": "h1", "mechanism_cause": "Shared cause"},
+                {"id": "h2", "mechanism_cause": "Shared cause"},
+                {"id": "h3", "mechanism_cause": "Distinct cause"},
+            ]
+        )
+        self.assertEqual(len(issues), 1)
+        self.assertIn("duplicates", issues[0])
+
+    def test_validate_prediction_specificity_flags_vague_predictions(self) -> None:
+        """Verify specificity check separates vague and specific predictions."""
+        report = _validate_prediction_specificity(
+            [
+                "If error rate exceeds 2%, logical fidelity drops within 3 days.",
+                "Model performance will improve significantly.",
+            ]
+        )
+        self.assertEqual(report["total"], 2)
+        self.assertEqual(report["specific"], 1)
+        self.assertEqual(len(report["vague_predictions"]), 1)
 
     def test_ensure_summa_rendering_builds_fallback_top3(self) -> None:
         """Verify that ensure summa rendering builds fallback top3."""

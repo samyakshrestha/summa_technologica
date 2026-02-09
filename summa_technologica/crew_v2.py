@@ -24,18 +24,22 @@ Files this module depends on:
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from pathlib import Path
+import time
 from typing import Any
 
 from .config import Settings
 from .crew_v2_postprocess import (
     _apply_pairwise_ranking,
     _as_json,
+    _check_novelty_diversity,
     _ensure_summa_rendering,
     _hydrate_summa_triplets,
     _normalize_critic_hypotheses,
     _normalize_generated_hypotheses,
     _top_hypotheses,
+    _validate_prediction_specificity,
 )
 from .crew_v2_stages import (
     _StageFailure,
@@ -79,11 +83,13 @@ def run_summa_v2(
     tasks_cfg = _load_yaml_config(Path(__file__).with_name("config") / "tasks_v2.yaml")
 
     stage_outputs: dict[str, Any] = {}
+    stage_durations: dict[str, float] = {}
     normalized_hypotheses: list[dict[str, Any]] = []
     ranked_ids: list[str] = []
     summa_rendering = ""
 
     try:
+        stage_started = time.monotonic()
         problem_memo = _run_stage_with_retry(
             stage_name="problem_framer",
             run_once=lambda retry_error: _run_json_stage(
@@ -98,8 +104,10 @@ def run_summa_v2(
                 retry_error=retry_error,
             ),
         )
+        stage_durations["problem_framer"] = round(time.monotonic() - stage_started, 3)
         stage_outputs["problem_framer"] = problem_memo
 
+        stage_started = time.monotonic()
         retrieval_result = retrieve_grounded_papers(
             question=cleaned_question,
             refined_query=problem_memo.get("refined_query"),
@@ -109,8 +117,10 @@ def run_summa_v2(
             per_query_limit=10,
             timeout_seconds=settings.semantic_scholar_timeout_seconds,
         )
+        stage_durations["retrieval"] = round(time.monotonic() - stage_started, 3)
         stage_outputs["retrieval"] = retrieval_result.to_dict()
 
+        stage_started = time.monotonic()
         evidence_memo = _run_stage_with_retry(
             stage_name="literature_scout",
             run_once=lambda retry_error: _run_json_stage(
@@ -125,8 +135,10 @@ def run_summa_v2(
                 retry_error=retry_error,
             ),
         )
+        stage_durations["literature_scout"] = round(time.monotonic() - stage_started, 3)
         stage_outputs["literature_scout"] = evidence_memo
 
+        stage_started = time.monotonic()
         generator_output = _run_stage_with_retry(
             stage_name="hypothesis_generator",
             run_once=lambda retry_error: _run_json_stage(
@@ -145,12 +157,15 @@ def run_summa_v2(
                 retry_error=retry_error,
             ),
         )
+        stage_durations["hypothesis_generator"] = round(time.monotonic() - stage_started, 3)
         stage_outputs["hypothesis_generator"] = generator_output
         normalized_hypotheses = _normalize_generated_hypotheses(
             generator_output,
             retrieval_result.papers,
         )
-        if len(normalized_hypotheses) < 3:
+        diversity_issues = _check_novelty_diversity(normalized_hypotheses)
+        if len(normalized_hypotheses) < 3 or diversity_issues:
+            stage_started = time.monotonic()
             normalized_hypotheses = _regenerate_for_diversity(
                 settings=settings,
                 agents_cfg=agents_cfg,
@@ -163,7 +178,12 @@ def run_summa_v2(
                 retrieval_result=retrieval_result,
                 stage_outputs=stage_outputs,
             )
+            stage_durations["hypothesis_generator_diversity_retry"] = round(
+                time.monotonic() - stage_started, 3
+            )
+            diversity_issues = _check_novelty_diversity(normalized_hypotheses)
 
+        stage_started = time.monotonic()
         critic_output = _run_stage_with_retry(
             stage_name="critic",
             run_once=lambda retry_error: _run_json_stage(
@@ -179,6 +199,7 @@ def run_summa_v2(
                 retry_error=retry_error,
             ),
         )
+        stage_durations["critic"] = round(time.monotonic() - stage_started, 3)
         stage_outputs["critic"] = critic_output
         normalized_hypotheses = _normalize_critic_hypotheses(
             critic_output,
@@ -186,7 +207,9 @@ def run_summa_v2(
             grounded_papers=retrieval_result.papers,
         )
 
-        if len(normalized_hypotheses) < 3:
+        diversity_issues = _check_novelty_diversity(normalized_hypotheses)
+        if len(normalized_hypotheses) < 3 or diversity_issues:
+            stage_started = time.monotonic()
             normalized_hypotheses = _regenerate_for_diversity(
                 settings=settings,
                 agents_cfg=agents_cfg,
@@ -199,7 +222,12 @@ def run_summa_v2(
                 retrieval_result=retrieval_result,
                 stage_outputs=stage_outputs,
             )
+            stage_durations["hypothesis_generator_diversity_retry_after_critic"] = round(
+                time.monotonic() - stage_started, 3
+            )
+            diversity_issues = _check_novelty_diversity(normalized_hypotheses)
 
+        stage_started = time.monotonic()
         ranker_output = _run_stage_with_retry(
             stage_name="ranker",
             run_once=lambda retry_error: _run_json_stage(
@@ -218,6 +246,7 @@ def run_summa_v2(
                 retry_error=retry_error,
             ),
         )
+        stage_durations["ranker"] = round(time.monotonic() - stage_started, 3)
         stage_outputs["ranker"] = ranker_output
 
         ranked_ids, hypotheses_with_scores = _apply_pairwise_ranking(
@@ -226,6 +255,7 @@ def run_summa_v2(
         )
         normalized_hypotheses = _hydrate_summa_triplets(hypotheses_with_scores)
 
+        stage_started = time.monotonic()
         composer_output = _run_stage_with_retry(
             stage_name="summa_composer",
             run_once=lambda retry_error: _run_summa_composer_stage(
@@ -245,6 +275,7 @@ def run_summa_v2(
                 retry_error=retry_error,
             ),
         )
+        stage_durations["summa_composer"] = round(time.monotonic() - stage_started, 3)
         stage_outputs["summa_composer"] = composer_output
         summa_rendering = _ensure_summa_rendering(
             raw_rendering=_require_nonempty_str(composer_output, "summa_rendering"),
@@ -254,17 +285,51 @@ def run_summa_v2(
             top=top,
         )
 
+        prediction_total = 0
+        prediction_specific = 0
+        vague_prediction_examples: list[str] = []
+        for hypothesis in normalized_hypotheses:
+            predictions = hypothesis.get("falsifiable_predictions")
+            prediction_report = _validate_prediction_specificity(
+                predictions if isinstance(predictions, list) else []
+            )
+            prediction_total += int(prediction_report["total"])
+            prediction_specific += int(prediction_report["specific"])
+            vague_prediction_examples.extend(prediction_report["vague_predictions"])
+
+        prediction_specificity_rate = (
+            round(prediction_specific / prediction_total, 3)
+            if prediction_total
+            else 0.0
+        )
+
         final_payload = {
             "question": cleaned_question,
             "domain": cleaned_domain,
             "hypotheses": normalized_hypotheses,
             "ranked_hypothesis_ids": ranked_ids,
             "summa_rendering": summa_rendering,
+            "_metadata": {
+                "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+                "models": {
+                    "default_model": settings.model,
+                    "creative_model": settings.creative_model,
+                },
+                "stage_durations_seconds": stage_durations,
+                "quality_checks": {
+                    "novelty_diversity_issues": diversity_issues,
+                    "prediction_specificity_rate": prediction_specificity_rate,
+                    "prediction_total": prediction_total,
+                    "prediction_specific": prediction_specific,
+                    "vague_prediction_examples": vague_prediction_examples[:5],
+                },
+            },
         }
 
         try:
             validate_v2_payload(final_payload, grounded_papers=retrieval_result.papers)
         except ContractValidationError as exc:
+            stage_started = time.monotonic()
             composer_retry = _run_summa_composer_stage(
                 agent_cfg=agents_cfg["summa_composer"],
                 task_cfg=tasks_cfg["summa_composer_task"],
@@ -281,6 +346,7 @@ def run_summa_v2(
                 },
                 retry_error=f"Final payload validation failed: {exc}",
             )
+            stage_durations["summa_composer_retry"] = round(time.monotonic() - stage_started, 3)
             stage_outputs["summa_composer_retry"] = composer_retry
             final_payload["summa_rendering"] = _ensure_summa_rendering(
                 raw_rendering=_require_nonempty_str(composer_retry, "summa_rendering"),
@@ -289,6 +355,9 @@ def run_summa_v2(
                 ranked_ids=ranked_ids,
                 top=top,
             )
+            metadata = final_payload.get("_metadata")
+            if isinstance(metadata, dict):
+                metadata["stage_durations_seconds"] = stage_durations
             validate_v2_payload(final_payload, grounded_papers=retrieval_result.papers)
 
         return final_payload

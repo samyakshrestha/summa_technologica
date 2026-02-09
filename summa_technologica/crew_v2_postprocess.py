@@ -27,7 +27,7 @@ def _normalize_generated_hypotheses(
     payload: dict[str, Any],
     grounded_papers: list[SemanticScholarPaper],
 ) -> list[dict[str, Any]]:
-    """Internal helper to normalize generated hypotheses."""
+    """Normalize generator output into stable hypothesis objects with fallbacks."""
     raw = payload.get("hypotheses")
     if not isinstance(raw, list):
         raise ValueError("Generator output must include hypotheses array.")
@@ -53,6 +53,22 @@ def _normalize_generated_hypotheses(
             "id": hypothesis_id,
             "title": _as_nonempty_text(item.get("title"), f"Hypothesis {hypothesis_id}"),
             "statement": _as_nonempty_text(item.get("statement"), "No statement provided."),
+            "mechanism_cause": _as_nonempty_text(
+                item.get("mechanism_cause"),
+                "Mechanism cause not provided.",
+            ),
+            "mechanism_substrate": _as_nonempty_text(
+                item.get("mechanism_substrate"),
+                "Mechanism substrate not provided.",
+            ),
+            "mechanism_intervention": _as_nonempty_text(
+                item.get("mechanism_intervention"),
+                "Mechanism intervention not provided.",
+            ),
+            "mechanism_signal": _as_nonempty_text(
+                item.get("mechanism_signal"),
+                "Mechanism signal not provided.",
+            ),
             "novelty_rationale": _as_nonempty_text(
                 item.get("novelty_rationale"),
                 "Novelty rationale unavailable.",
@@ -88,7 +104,7 @@ def _normalize_critic_hypotheses(
     fallback: list[dict[str, Any]],
     grounded_papers: list[SemanticScholarPaper],
 ) -> list[dict[str, Any]]:
-    """Internal helper to normalize critic hypotheses."""
+    """Normalize critic output while preserving schema-critical hypothesis fields."""
     raw = critic_payload.get("hypotheses")
     if not isinstance(raw, list) or not raw:
         hypotheses = fallback
@@ -110,6 +126,22 @@ def _normalize_critic_hypotheses(
                     "id": hypothesis_id,
                     "title": _as_nonempty_text(item.get("title"), f"Hypothesis {hypothesis_id}"),
                     "statement": _as_nonempty_text(item.get("statement"), "No statement provided."),
+                    "mechanism_cause": _as_nonempty_text(
+                        item.get("mechanism_cause"),
+                        "Mechanism cause not provided.",
+                    ),
+                    "mechanism_substrate": _as_nonempty_text(
+                        item.get("mechanism_substrate"),
+                        "Mechanism substrate not provided.",
+                    ),
+                    "mechanism_intervention": _as_nonempty_text(
+                        item.get("mechanism_intervention"),
+                        "Mechanism intervention not provided.",
+                    ),
+                    "mechanism_signal": _as_nonempty_text(
+                        item.get("mechanism_signal"),
+                        "Mechanism signal not provided.",
+                    ),
                     "novelty_rationale": _as_nonempty_text(
                         item.get("novelty_rationale"),
                         "Novelty rationale unavailable.",
@@ -145,6 +177,108 @@ def _normalize_critic_hypotheses(
         if "replies" not in hypothesis:
             hypothesis["replies"] = _ensure_replies(None)
     return hypotheses[:5]
+
+
+def _check_novelty_diversity(hypotheses: list[dict[str, Any]]) -> list[str]:
+    """Return diversity issues when hypotheses reuse the same mechanism cause."""
+    issues: list[str] = []
+    seen_causes: dict[str, str] = {}
+
+    for hypothesis in hypotheses:
+        if not isinstance(hypothesis, dict):
+            continue
+        hypothesis_id = _as_nonempty_text(hypothesis.get("id"), "unknown")
+        cause = _as_nonempty_text(hypothesis.get("mechanism_cause"), "").strip()
+        if not cause or cause.lower() == "mechanism cause not provided.":
+            issues.append(f"{hypothesis_id}: missing mechanism_cause")
+            continue
+
+        normalized_cause = re.sub(r"\s+", " ", cause.lower()).strip()
+        existing_id = seen_causes.get(normalized_cause)
+        if existing_id is not None:
+            issues.append(
+                f"{hypothesis_id}: mechanism_cause duplicates {existing_id}"
+            )
+            continue
+        seen_causes[normalized_cause] = hypothesis_id
+    return issues
+
+
+def _validate_prediction_specificity(predictions: list[str]) -> dict[str, Any]:
+    """Score prediction specificity and surface vague predictions for follow-up."""
+    cleaned_predictions = [str(item).strip() for item in predictions if str(item).strip()]
+    if not cleaned_predictions:
+        return {
+            "total": 0,
+            "specific": 0,
+            "rate": 0.0,
+            "vague_predictions": [],
+        }
+
+    specific = 0
+    vague_predictions: list[str] = []
+    for prediction in cleaned_predictions:
+        if _is_prediction_specific(prediction):
+            specific += 1
+        else:
+            vague_predictions.append(prediction)
+    return {
+        "total": len(cleaned_predictions),
+        "specific": specific,
+        "rate": round(specific / len(cleaned_predictions), 3),
+        "vague_predictions": vague_predictions,
+    }
+
+
+def _is_prediction_specific(prediction: str) -> bool:
+    """Treat predictions as specific when they include conditional or measurable anchors."""
+    lowered = prediction.lower()
+
+    has_condition = any(
+        marker in lowered
+        for marker in ("if ", "when ", "under ", "given ")
+    )
+    has_number = bool(re.search(r"\d", lowered))
+    has_measurement_anchor = any(
+        marker in lowered
+        for marker in (
+            "%",
+            "percent",
+            "ms",
+            "second",
+            "minute",
+            "hour",
+            "day",
+            "week",
+            "month",
+            "year",
+            ">=",
+            "<=",
+            "at least",
+            "at most",
+            "within ",
+        )
+    )
+    has_vague_phrase = any(
+        phrase in lowered
+        for phrase in (
+            "will improve",
+            "may improve",
+            "could improve",
+            "may show",
+            "could lead to",
+            "better performance",
+            "improves performance",
+        )
+    )
+
+    if has_condition:
+        return True
+    if has_number and has_measurement_anchor:
+        return True
+    if has_vague_phrase:
+        return False
+    return has_number
 
 
 def _apply_pairwise_ranking(

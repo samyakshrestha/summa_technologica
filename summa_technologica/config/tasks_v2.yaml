@@ -54,10 +54,17 @@ hypothesis_generator_task:
     - id: short string id like h1, h2
     - title: string
     - statement: string
+    - mechanism_cause: string (what causal factor drives the effect)
+    - mechanism_substrate: string (what system/entity the cause acts on)
+    - mechanism_intervention: string (how to manipulate it experimentally)
+    - mechanism_signal: string (what measurable signal should change)
     - novelty_rationale: string
     - plausibility_rationale: string
     - testability_rationale: string
-    - falsifiable_predictions: array with at least 1 string
+    - falsifiable_predictions: array with at least 1 string.
+      Each prediction must be conditional ("If X, then Y within Z timeframe")
+      or quantitative ("Metric M changes by at least N%").
+      Avoid vague phrases such as "will improve" without measurable anchors.
     - minimal_experiments: array with at least 1 string
     - citations: array of citation objects with keys title, authors, year and paper_id or doi.
       IMPORTANT: Copy the paper_id value exactly as it appears in retrieval_json.
@@ -67,6 +74,7 @@ hypothesis_generator_task:
     Distinctness requirements:
     - Every pair must differ on at least one axis:
       (a) causal mechanism, (b) empirical domain, or (c) theoretical framework.
+    - Prefer hypotheses with clearly different mechanism_cause values.
 
     Constraints:
     - Use only grounded citations from retrieval_json.
@@ -128,6 +136,12 @@ ranker_task:
     Requirements:
     - Cover all unordered pairs exactly once for surviving hypotheses.
     - Use pairwise judgments, not raw numeric scores.
+    - Use "tie" only when both hypotheses are genuinely indistinguishable on that axis.
+      Otherwise choose "a" or "b".
+    - Calibration anchors:
+      novelty = not a restatement of known ideas,
+      plausibility = has empirical/theoretical support,
+      testability = can be falsified by a concrete experiment within ~1 year.
     - No markdown, no extra keys.
   expected_output: >
     Valid JSON pairwise judgments for all hypothesis pairs.
@@ -156,4 +170,3 @@ summa_composer_task:
     - Do not output JSON other than {"summa_rendering": "..."}.
   expected_output: >
     Valid JSON containing a complete Summa rendering string for top hypothesis/hypotheses.
-
